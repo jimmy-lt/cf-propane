@@ -28,6 +28,8 @@ import sys
 import glob
 import shutil
 
+import jinja2
+
 from contextlib import suppress
 
 from invoke import Collection, task
@@ -40,6 +42,8 @@ from invoke import Collection, task
 ENVIRONMENT = {
     'project': {
         'build_d': 'build',
+        'src_d': 'src',
+        'lib_d': 'lib',
     },
 }
 
@@ -416,16 +420,79 @@ class fs(object):
 # ----------------
 
 #
+# Project tasks
+# ^^^^^^^^^^^^^
+
+@task(name='clean')
+def project_clean():
+    """Clean project folder from built files."""
+    build_d = ENVIRONMENT['project']['build_d']
+    src_d   = ENVIRONMENT['project']['src_d']
+    lib_d   = ENVIRONMENT['project']['lib_d']
+    bld_log = os.path.join(build_d, '.build')
+
+    patterns = [build_d, ]
+    if os.path.exists(bld_log):
+        with open(bld_log, 'r') as fp:
+            patterns = [x for x in fp.read().splitlines() if x]
+        patterns.append(bld_log)
+
+    lines = ['Cleaning ' + x for x in fs.shexpand(patterns)]
+    if lines:
+        msg.write(msg.INFORMATION, *sorted(lines, reverse=True))
+    fs.rmtree(patterns)
+
+
+@task(project_clean, name='build')
+def project_build():
+    """Build the project."""
+    build_d = ENVIRONMENT['project']['build_d']
+    src_d   = ENVIRONMENT['project']['src_d']
+    lib_d   = ENVIRONMENT['project']['lib_d']
+    bld_log = os.path.join(build_d, '.build')
+
+    fs.copytree(src_d, build_d)
+    fs.copytree(lib_d, os.path.join(build_d, 'lib'))
+
+    context = {}
+    tpl_env = jinja2.Environment(
+        extensions = ['jinja2.ext.loopcontrols', ],
+        loader = jinja2.PrefixLoader({
+            '.': jinja2.FileSystemLoader(src_d),
+            'lib': jinja2.FileSystemLoader(lib_d),
+        }),
+        trim_blocks = True,
+        lstrip_blocks = True
+    )
+
+    for tpl_name in tpl_env.list_templates():
+        tpl = tpl_env.get_template(tpl_name)
+        bld = os.path.join(build_d, tpl_name)
+
+        msg.write(msg.INFORMATION, 'Building ' + bld)
+        with open(bld, 'w') as fp_tpl, open(bld_log, 'w') as fp_bld:
+            fp_tpl.write(tpl.render(context))
+            fp_bld.write(bld + '\n')
+
+
+ns_proj = Collection('proj')
+ns_proj.add_task(project_build)
+ns_proj.add_task(project_clean)
+
+ns.add_collection(ns_proj)
+
+
+#
 # Global tasks
 # ^^^^^^^^^^^^
 
-@task(default=True)
+@task(project_build, default=True)
 def build():
     """Call all the build tasks to build the project."""
     msg.write(msg.INFORMATION, 'Done!')
 
 
-@task
+@task(project_clean)
 def clean():
     """Clean the whole project tree from built files."""
     patterns = [

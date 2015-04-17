@@ -416,6 +416,93 @@ class fs(object):
 
 
 #
+# Docstring
+# ^^^^^^^^^
+
+class docstring(object):
+    """Namespace for docstring operations.
+
+    :attribute COMMENT_START_WITH: Docstring comment line identifier.
+
+    """
+    COMMENT_START_WITH = '#:'
+
+    EXT_CF  = '.cf'
+    EXT_RST = '.rst'
+
+
+    @classmethod
+    def extract(cls, path, dst):
+        """Extract specially formatted comment strings (a.k.a.
+        docstrings) from file and save the result in *dst*.
+
+        Docstring comments should start with ``#:``.
+
+        :param str path: Path of the file from which to extract the
+                         docstrings.
+        :param str dst: Path to the file in which to write extracted
+                        docstrings.
+
+        :returns: ``True`` if result file has been written, ``False``
+                  otherwise.
+        :rtype: bool
+
+        """
+        comment_start_re = re.compile(
+            r'{}\s?'.format(cls.COMMENT_START_WITH)
+        )
+
+        doclines = []
+        doc_app  = doclines.append
+        try:
+            with open(path, 'r') as fd:
+                for line in fd:
+                    line = line.strip()
+                    if not line.startswith(cls.COMMENT_START_WITH):
+                        continue
+                    doc_app(comment_start_re.sub('', line) + '\n')
+        except OSError:
+            return False
+
+        if not doclines:
+            return False
+
+        try:
+            with open(dst, 'w') as fd:
+                fd.writelines(doclines)
+        except OSError:
+            return False
+
+        return True
+
+
+    @classmethod
+    def to_dir(cls, src, dst):
+        """Given a cf-propane *src* directory, extract all the docstrings
+        from the source files and save the result in *dst*.
+
+        :param str src: Path to source code directory of a cf-propane
+                        project.
+        :param str dst: Path to directory in which to save extracted
+                        docstring files.
+
+        """
+        cf_files = [
+            (p, p.replace(src, dst).replace(cls.EXT_CF, cls.EXT_RST))
+            for p in sorted(fs.lstree(src, recursive=True))
+            if p.endswith(cls.EXT_CF) and not os.path.isdir(p)
+        ]
+
+        if not cf_files:
+            return
+
+        fs.copytree(src, dst)
+        for source, dest in cf_files:
+            cls.extract(source, dest)
+        fs.rmdir(dst, recursive=True)
+
+
+#
 # Task definitions
 # ----------------
 

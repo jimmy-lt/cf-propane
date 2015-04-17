@@ -32,7 +32,7 @@ import jinja2
 
 from contextlib import suppress
 
-from invoke import Collection, task
+from invoke import Collection, task, run
 
 
 #
@@ -45,7 +45,14 @@ ENVIRONMENT = {
         'src_d': 'src',
         'lib_d': 'lib',
     },
+    'doc': {
+        'src_d': 'doc',
+        'target': 'html',
+    },
 }
+ENVIRONMENT['doc']['build_d'] = os.path.join(
+    ENVIRONMENT['project']['build_d'], 'doc'
+)
 
 ns = Collection()
 
@@ -570,16 +577,62 @@ ns.add_collection(ns_proj)
 
 
 #
+# Documentation tasks
+# ^^^^^^^^^^^^^^^^^^^
+
+@task(name='clean')
+def doc_clean():
+    """Clean project folder from built documentation files."""
+    patterns = [ENVIRONMENT['doc']['build_d'], ]
+
+    lines = ['Cleaning ' + x for x in fs.shexpand(patterns)]
+    if lines:
+        msg.write(msg.INFORMATION, *sorted(lines, reverse=True))
+    fs.rmtree(patterns)
+
+
+_doc_build_help = {
+    'target': "Targeted documentation format. Default to {}.".format(
+        ENVIRONMENT['doc']['target']
+    ),
+}
+@task(doc_clean, name='build', help=_doc_build_help)
+def doc_build(target=ENVIRONMENT['doc']['target']):
+    """Build documentation using Sphinx."""
+    build_d = ENVIRONMENT['doc']['build_d']
+    out_d   = os.path.join(build_d, 'output', target)
+    src_d   = os.path.join(build_d, ENVIRONMENT['project']['src_d'])
+
+    msg.write(msg.INFORMATION, 'Building documentation')
+
+    shutil.copytree(ENVIRONMENT['doc']['src_d'], build_d)
+    docstring.to_dir(ENVIRONMENT['project']['src_d'], src_d)
+
+    run(
+        'sphinx-build -b {target} {build_d} {out_d}'.format(
+            **locals()
+        )
+    )
+
+
+ns_doc = Collection('doc')
+ns_doc.add_task(doc_build)
+ns_doc.add_task(doc_clean)
+
+ns.add_collection(ns_doc)
+
+
+#
 # Global tasks
 # ^^^^^^^^^^^^
 
-@task(project_build, default=True)
+@task(project_build, doc_build, default=True)
 def build():
     """Call all the build tasks to build the project."""
     msg.write(msg.INFORMATION, 'Done!')
 
 
-@task(project_clean)
+@task(doc_clean, project_clean)
 def clean():
     """Clean the whole project tree from built files."""
     patterns = [

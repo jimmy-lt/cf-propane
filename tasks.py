@@ -623,6 +623,39 @@ ns.add_collection(ns_doc)
 
 
 #
+# Test tasks
+# ^^^^^^^^^^
+
+_test_promises_help = {
+    'file': "Input file to be tested.",
+}
+@task(project_build, name='promises', help=_test_promises_help)
+def test_promises(file=''):
+    """Test built promises."""
+    build_d = os.path.abspath(ENVIRONMENT['project']['build_d'])
+    inputs  = os.path.abspath(fs.shexpand('~/.cfagent/inputs')[0])
+
+    opts = ['--full-check', '--warn', 'all']
+    if file:
+        opts.append('--file {}'.format(file))
+
+    if not fs.symlink(build_d, inputs, force=True, target_is_directory=True):
+        msg.write(msg.ERROR, 'Could not create symlink to build directory.')
+        sys.exit(1)
+
+    msg.write(msg.INFORMATION, 'Testing promises.')
+    result = run('cf-promises {}'.format(' '.join(opts)))
+    if result.ok:
+        msg.write(msg.INFORMATION, 'OK!')
+
+
+ns_test = Collection('test')
+ns_test.add_task(test_promises)
+
+ns.add_collection(ns_test)
+
+
+#
 # Global tasks
 # ^^^^^^^^^^^^
 

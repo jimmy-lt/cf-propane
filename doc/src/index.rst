@@ -21,3 +21,5 @@ This reference manual describes the content of each file part of
 .. toctree::
    :maxdepth: 2
 
+   failsafe
+

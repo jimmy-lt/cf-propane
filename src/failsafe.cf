@@ -1,0 +1,814 @@
+#: failsafe.cf
+#: ===========
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#: Try to recover the CFEngine environment back to a working state if
+#: ``promises.cf`` should fail. This file is self contained not to
+#: depend on possibly broken external sources.
+#:
+#: This is the last resort to recover a working state so the content of
+#: this file should be changed as less as possible to avoid breaking
+#: recovery of the CFEngine environment.
+#:
+#: Any change made to this file should be heavily tested to ensure it
+#: can still ensure its function.
+#:
+
+
+#:
+#: Controls
+#: --------
+#:
+#: .. cf3:body:: common control
+#:
+#:   Entry point for the ``failsafe.cf`` file. Set control promises
+#:   common to all CFEngine components and call
+#:   :cf3:bundle:`agent cfpropane_failsafe` to start recovery.
+#:
+body common control
+{
+  bundlesequence => { "cfpropane_failsafe" };
+  version => "0.1a";
+}
+
+
+#: .. cf3:body:: agent control
+#:
+#:   Control promises for the ``cf-agent`` component. Inhibit agent's
+#:   locking so that all the policies defined here are executed
+#:   immediately.
+#:
+body agent control
+{
+  ifelapsed => "1";
+  skipidentify => "true";
+}
+
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: common cfpropane_knowledge_failsafe
+#:
+#:   :classes am_policy_hub: If host is a policy hub, check if the
+#:                           masterfiles directory is pulled from a git
+#:                           repository.
+#:
+#:   :defines cfpropane_knowledge_failsafe_has_ppkey:
+#:       If a cryptographic key pair is found on host.
+#:
+#:   :defines cfpropane_knowledge_failsafe_has_policy:
+#:     If file ``promises.cf`` can be found in input directory.
+#:
+#:   :defines cfpropane_knowledge_failsafe_is_dir_etc_d:
+#:     If ``/etc/cfengine3`` is a directory.
+#:
+#:   :defines cfpropane_knowledge_failsafe_is_git_repository_masterdir:
+#:     If the masterfiles directory has been pull from a git
+#:     repository.
+#:
+#:   .. cf3:variable:: path[etc_d]
+#:
+#:     :type: string
+#:
+#:     Path to the input files in the ``/etc`` directory.
+#:
+#:   .. cf3:variable:: path[ppkey]
+#:
+#:     :type: string
+#:
+#:     Path to host's public key.
+#:
+#:   Global definitions needed for the recovery operation.
+#:
+bundle common cfpropane_knowledge_failsafe
+{
+  vars:
+    any::
+      "path[etc.d]"
+        string  => translatepath("/etc/cfengine3"),
+        comment => "Path to input files in the /etc directory",
+        handle  => "cfpropane_knowledge_failsafe_vars_path_etc_d";
+
+      "path[ppkey]"
+        string  => translatepath("$(sys.workdir)/ppkeys/localhost.pub"),
+        comment => "Path to local host public key file",
+        handle  => "cfpropane_knowledge_failsafe_vars_path_ppkey";
+
+      "path[timestamp]"
+        string  => translatepath("$(sys.inputdir)/cf_promises_validated"),
+        comment => "Time stamp file when policies were last validated",
+        handle  => "cfpropane_knowledge_failsafe_vars_path_timestamp";
+
+
+  classes:
+    any::
+      "cfpropane_knowledge_failsafe_has_ppkey"
+        expression => fileexists("$(path[ppkey])"),
+        comment    => "Check for local host public key file",
+        handle     => "cfpropane_knowledge_failsafe_classes_has_ppkey";
+
+      "cfpropane_knowledge_failsafe_has_policy"
+        expression => fileexists(
+          translatepath("$(sys.inputdir)/promises.cf")
+        ),
+        comment    => "Check for promises.cf file",
+        handle     => "cfpropane_knowledge_failsafe_classes_has_policy";
+
+      "cfpropane_knowledge_failsafe_is_dir_etc_d"
+        expression => isdir("$(path[etc_d])"),
+        comment    => "Check if $(path[etc_d]) is a directory",
+        handle     => "cfpropane_knowledge_failsafe_classes_is_dir_etc_d";
+
+    am_policy_hub::
+      "cfpropane_knowledge_failsafe_is_git_repository_masterdir"
+        expression => isdir(
+          translatepath("$(sys.masterdir)/.git")
+        ),
+        comment    => "Look if $(sys.masterdir) is pulled from a git repository",
+        handle     => "cfpropane_knowledge_failsafe_classes_is_masterdir_git_repository";
+}
+
+
+#: .. cf3:bundle:: agent cfpropane_failsafe
+#:
+#:   :classes cfpropane_knowledge_failsafe_has_ppkey:
+#:     If this class is **not** defined,
+#:     :cf3:bundle:`agent cfpropane_failsafe_ppkey` method will be called
+#:     to generate a new key pair.
+#:
+#:   :classes cfpropane_knowledge_failsafe_is_git_repository_masterdir:
+#:     If masterfiles directory is pulled from a git repository, call
+#:     :cf3:bundle:`agent cfpropane_failsafe_masterdir_git` to
+#:     pull latest revisions.
+#:
+#:   The recovery process has been divided in multiple actions. This
+#:   bundle calls the appropriate tasks to ensure recovery of the
+#:   CFEngine environment.
+#:
+bundle agent cfpropane_failsafe
+{
+  methods:
+    any::
+      "workdir" -> {
+        "cfpropane_failsafe_methods_ppkey",
+        "cfpropane_failsafe_methods_masterdir_git",
+        "cfpropane_failsafe_methods_policy",
+      }
+        usebundle => cfpropane_failsafe_workdir,
+        comment   => "Call method to prepare working directory",
+        handle    => "cfpropane_failsafe_methods_workdir";
+
+      "policy" -> {
+        "cfpropane_failsafe_methods_process",
+      }
+        usebundle => cfpropane_failsafe_policy,
+        comment   => "Call method to update policy",
+        handle    => "cfpropane_failsafe_methods_policy";
+
+      "process"
+        usebundle => cfpropane_failsafe_process,
+        comment   => "Call bundle to start CFEngine",
+        handle    => "cfpropane_failsafe_methods_process";
+
+    cfpropane_knowledge_failsafe_is_git_repository_masterdir::
+      "masterdir_git" -> {
+        "cfpropane_failsafe_methods_policy",
+      }
+        usebundle => cfpropane_failsafe_masterdir_git,
+        comment   => "Call method to update masterfiles from git",
+        handle    => "cfpropane_failsafe_methods_masterdir_git";
+
+    !cfpropane_knowledge_failsafe_has_ppkey::
+      "ppkey" -> {
+        "cfpropane_failsafe_methods_process",
+      }
+        usebundle => cfpropane_failsafe_ppkey,
+        comment   => "Call method to generate host key pair",
+        handle    => "cfpropane_failsafe_methods_ppkey";
+}
+
+
+#: .. cf3:bundle:: agent cfpropane_failsafe_ppkey
+#:
+#:   Run the ``cf-key`` component to generate a new key pair for remote
+#:   authentication.
+#:
+bundle agent cfpropane_failsafe_ppkey
+{
+  commands:
+    "$(sys.cf_key)"
+      comment => "Generate key pair for remote authentication",
+      handle  => "cfpropane_failsafe_ppkey_commands_cf_key";
+}
+
+
+#: .. cf3:bundle:: agent cfpropane_failsafe_masterdir_git
+#:
+#:   Update CFEngine masterfiles from a git repository by pulling the
+#:   latest revision.
+#:
+#:   .. note:: This bundle assumes that the production policies are
+#:             located in the ``master`` branch.
+#:
+bundle agent cfpropane_failsafe_masterdir_git
+{
+  vars:
+    any::
+      "bin[git]" string => "/usr/bin/git";
+
+      "remote_branch"
+        string  => "master",
+        comment => "Remote git branch to pull from",
+        handle  => "cfpropane_failsafe_masterdir_git_vars_remote_branch";
+
+
+  classes:
+    "has_git"
+      expression => isexecutable("$(bin[git])"),
+      comment    => "Check if git is present on the system",
+      handle     => "cfpropane_failsafe_masterdir_git_classes_has_git";
+
+
+  commands:
+    has_git::
+      "$(bin[git])"
+        args    => "pull --ff-only origin $(remote_branch)",
+        contain => cfpropane_failsafe_in_dir("$(sys.masterdir)"),
+        comment => "Pull master branch for current git repository",
+        handle  => "cfpropane_failsafe_masterdir_git_commands_pull";
+}
+
+
+#: .. cf3:bundle:: agent cfpropane_failsafe_workdir
+#:
+#:   Set permissions on CFEngine working directory.
+#:
+bundle agent cfpropane_failsafe_workdir
+{
+  vars:
+    any::
+      "bindir"
+        slist => {
+          "$(sys.bindir)",
+          translatepath("$(sys.workdir)/modules"),
+          translatepath("$(sys.workdir)/plugins"),
+        },
+        comment => "List of directories hosting executables",
+        handle  => "cfpropane_failsafe_workdir_vars_bindir";
+
+      "strict_access"
+        slist => {
+          "$(sys.inputdir)",
+          "$(sys.masterdir)",
+          translatepath("$(sys.workdir)/outputs"),
+          translatepath("$(sys.workdir)/ppkeys"),
+          translatepath("$(sys.workdir)/reports"),
+        },
+        comment => "List of directories accessible only by the administrator",
+        handle  => "cfpropane_failsafe_workdir_vars_strict_access";
+
+
+  files:
+    any::
+      "$(sys.workdir)/." -> {
+        "cfpropane_failsafe_workdir_files_bindir",
+        "cfpropane_failsafe_workdir_files_strict_access",
+      }
+        action       => cfpropane_failsafe_immediate,
+        perms        => cfpropane_failsafe_system_owned("0644"),
+        depth_search => cfpropane_failsafe_recurse_with_base("inf"),
+        comment      => "Set up $(sys.bindir) directory",
+        handle       => "cfpropane_failsafe_workdir_files_workdir";
+
+      "$(bindir)/."
+        action       => cfpropane_failsafe_immediate,
+        perms        => cfpropane_failsafe_system_owned("0755"),
+        depth_search => cfpropane_failsafe_recurse_with_base("inf"),
+        comment      => "Set up $(bindir) directory",
+        handle       => "cfpropane_failsafe_workdir_files_bindir",
+        depends_on   => {
+          "cfpropane_failsafe_workdir_files_workdir",
+        };
+
+      "$(strict_access)/."
+        action       => cfpropane_failsafe_immediate,
+        perms        => cfpropane_failsafe_system_owned("0600"),
+        depth_search => cfpropane_failsafe_recurse_with_base("inf"),
+        comment      => "Set restricted access permissions",
+        handle       => "cfpropane_failsafe_workdir_files_strict_access",
+        depends_on   => {
+          "cfpropane_failsafe_workdir_files_workdir",
+        };
+
+    !cfpropane_knowledge_failsafe_is_dir_etc_d::
+      "$(cfpropane_knowledge_failsafe.path[etc_d])"
+        action     => cfpropane_failsafe_immediate,
+        link_from  => cfpropane_failsafe_ln_s("$(sys.inputdir)"),
+        comment    => "Link $(sys.inputdir) to $(cfpropane_failsafe.cf_etc_d)",
+        handle     => "cfpropane_failsafe_workdir_files_ln_etc_d";
+
+    cfpropane_knowledge_failsafe_is_dir_etc_d::
+      "$(cfpropane_knowledge_failsafe.path[etc_d])" -> {
+        "cfpropane_failsafe_workdir_files_ln_etc_d",
+      }
+        delete  => cfpropane_failsafe_tidy,
+        comment => "Remove $(cfpropane_knowledge_failsafe.path[etc_d]) directory",
+        handle  => "cfpropane_failsafe_workdir_files_delete_etc_d";
+}
+
+
+#: .. cf3:bundle:: agent cfpropane_failsafe_process
+#:
+#:   :classes am_policy_hub: Will start CFEngine component ``cf-serverd``
+#:                           only if host if a policy hub.
+#:
+#:   :classes cfpropane_knowledge_failsafe_has_policy:
+#:     Will start CFEngine only if the policy files are ready.
+#:
+#:   :defines cfpropane_failsafe_start_cf_execd:
+#:     CFEngine component ``cf-execd`` should be started.
+#:
+#:   :defines cfpropane_failsafe_start_cf_monitord:
+#:     CFEngine component ``cf-monitord`` should be started.
+#:
+#:   :defines cfpropane_failsafe_start_cf_serverd:
+#:     CFEngine component ``cf-serverd`` should be started.
+#:
+#:   Start the CFEngine daemons if they are not running and ensure the
+#:   system is configured to start them on boot.
+#:
+bundle agent cfpropane_failsafe_process
+{
+  defaults:
+    any::
+      "sys_default[RUN_CFMONITORD]" string => "1";
+      "sys_default[RUN_CFEXECD]"    string => "1";
+      "sys_default[RUN_CFSERVERD]"  string => "1";
+
+
+  processes:
+    cfpropane_knowledge_failsafe_has_policy.am_policy_hub::
+      "cf-serverd"
+        restart_class => "cfpropane_failsafe_start_cf_serverd",
+        comment       => "Monitor file distribution daemon",
+        handle        => "cfpropane_failsafe_process_processes_cf_serverd";
+
+    cfpropane_knowledge_failsafe_has_policy::
+      "cf-monitord"
+        restart_class => "cfpropane_failsafe_start_cf_monitord",
+        comment       => "Monitor monitoring daemon",
+        handle        => "cfpropane_failsafe_process_processes_cf_monitord";
+
+      "cf-execd"
+        restart_class => "cfpropane_failsafe_start_cf_execd",
+        comment       => "Monitor policy scheduler daemon",
+        handle        => "cfpropane_failsafe_process_processes_cf_execd";
+
+
+  commands:
+    cfpropane_failsafe_start_cf_serverd::
+      "$(sys.cf_serverd)"
+        comment => "Start file distribution daemon",
+        handle  => "cfpropane_failsafe_process_commands_cf_serverd";
+
+    cfpropane_failsafe_start_cf_monitord::
+      "$(sys.cf_monitord)"
+        comment => "Start monitoring daemon",
+        handle  => "cfpropane_failsafe_process_commands_cf_monitord";
+
+    cfpropane_failsafe_start_cf_execd::
+      "$(sys.cf_execd)"
+        comment => "Start policy scheduler daemon",
+        handle  => "cfpropane_failsafe_process_commands_cf_execd";
+
+
+  files:
+    "/etc/default/cfengine3"
+      create        => "true",
+      action        => cfpropane_failsafe_immediate,
+      perms         => cfpropane_failsafe_system_owned("0644"),
+      edit_defaults => cfpropane_failsafe_empty,
+      edit_line     => cfpropane_failsafe_set_variable_values(
+        "$(this.bundle).sys_default"
+      ),
+      comment       => "Set up boot default parameters",
+      handle        => "cfpropane_failsafe_process_files_etc_default";
+}
+
+
+#: .. cf3:bundle:: agent cfpropane_failsafe_policy
+#:
+#:   :classes am_policy_hub: Force policy update and generate reports
+#:                           about configuration.
+#:
+#:   :defines cfpropane_failsafe_should_update:
+#:     Agent should update policy files.
+#:
+#:   :defines cfpropane_failsafe_policy_updated:
+#:     Agent has updated policy files by grabbing them from hub
+#:     server.
+#:
+#:   Update CFEngine policy from hub server.
+#:
+bundle agent cfpropane_failsafe_policy
+{
+  vars:
+    any::
+      "path[modules]"
+        slist => {
+          translatepath("$(sys.workdir)/modules"),
+          translatepath("$(sys.workdir)/plugins"),
+        },
+        comment => "CFEngine 3 modules to be copied on agent hosts",
+        handle  => "cfpropane_failsafe_policy_vars_path_modules";
+
+
+  commands:
+    am_policy_hub.cfpropane_failsafe_policy_updated::
+      "$(sys.cf_promises) --reports"
+        contain => cfpropane_failsafe_in_shell_silent,
+        comment => "Generate reports about configuration",
+        handle  => "cfpropane_failsafe_policy_commands_policy_reports";
+
+
+  files:
+    any::
+      "$(cfpropane_knowledge_failsafe.path[timestamp])" -> {
+        "cfpropane_failsafe_policy_files_modules",
+        "cfpropane_failsafe_policy_files_inputdir",
+      }
+        copy_from => cfpropane_failsafe_hub_scp(
+          "$(sys.masterdir)/cf_promises_validated",
+          "$(sys.policy_hub)"
+        ),
+        action    => cfpropane_failsafe_immediate,
+        classes   => cfpropane_failsafe_if_repaired(
+          "cfpropane_failsafe_should_update"
+        ),
+        comment   => "Check policies timestamp to reduce network load",
+        handle    => "cfpropane_failsafe_policy_files_timestamp";
+
+    am_policy_hub|cfpropane_failsafe_should_update::
+      "$(sys.inputdir)/."
+        action       => cfpropane_failsafe_immediate,
+        copy_from    => cfpropane_failsafe_hub_scp(
+          "$(sys.masterdir)",
+          "$(sys.policy_hub)"
+        ),
+        depth_search => cfpropane_failsafe_recurse("inf"),
+        classes      => cfpropane_failsafe_if_repaired(
+          "cfpropane_failsafe_policy_updated"
+        ),
+        comment      => "Securely copy CFEngine policy from hub server",
+        handle       => "cfpropane_failsafe_policy_files_inputdir",
+        depends_on   => {
+          "cfpropane_failsafe_policy_files_timestamp"
+        };
+
+    cfpropane_failsafe_should_update::
+      "$(path[modules])/."
+        action       => cfpropane_failsafe_immediate,
+        copy_from    => cfpropane_failsafe_hub_scp(
+          "$(path[modules])",
+          "$(sys.policy_hub)"
+        ),
+        depth_search => cfpropane_failsafe_recurse("inf"),
+        comment      => "Securely copy CFEngine modules from hub server",
+        handle       => "cfpropane_failsafe_policy_files_modules",
+        depends_on   => {
+          "cfpropane_failsafe_policy_files_timestamp"
+        };
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: Bodies are included for a self contained policy.
+#:
+#: action
+#: ^^^^^^
+#:
+#: .. cf3:body:: action cfpropane_failsafe_immediate
+#:
+#:   Inhibit agent locking to ensure the promise is ran immediately.
+#:
+body action cfpropane_failsafe_immediate
+{
+  ifelapsed => "0";
+}
+
+
+#:
+#: classes
+#: ^^^^^^^
+#:
+#: .. cf3:body:: classes cfpropane_failsafe_if_ok(cls)
+#:
+#:   :param cls: Class to be defined.
+#:   :type cls: string
+#:
+#:   Define given class if promise has been repaired or kept.
+#:
+body classes cfpropane_failsafe_if_ok(cls)
+{
+  promise_repaired => { "$(cls)" };
+  promise_kept => { "$(cls)" };
+}
+
+#: .. cf3:body:: classes cfpropane_failsafe_if_repaired(cls)
+#:
+#:   :param cls: Class to be defined.
+#:   :type cls: string
+#:
+#:   Define given class only if promise has been repaired.
+#:
+body classes cfpropane_failsafe_if_repaired(cls)
+{
+  promise_repaired => { "$(cls)" };
+}
+
+
+#:
+#: contain
+#: ^^^^^^^
+#:
+#: .. cf3:body:: contain cfpropane_failsafe_in_dir(dir)
+#:
+#:   Contain promise by changing to the CFEngine master files
+#:   directory.
+#:
+body contain cfpropane_failsafe_in_dir(dir)
+{
+  chdir => "$(dir)";
+}
+
+#: .. cf3:body:: contain cfpropane_failsafe_in_shell_silent
+#:
+#:   Execute promise in a shell and suppress any output.
+#:
+body contain cfpropane_failsafe_in_shell_silent
+{
+  useshell  => "useshell";
+  no_output => "true";
+}
+
+
+#:
+#: copy_from
+#: ^^^^^^^^^
+#:
+#: .. cf3:body:: copy_from cfpropane_failsafe_hub_scp(path, server)
+#:
+#:   :param path: Remote path to be copied on current host.
+#:   :type path: string
+#:
+#:   :param server: Hostname or IP address of the remote server.
+#:                  If current host is a policy hub, this parameter is
+#:                  ignored, resulting in a local copy.
+#:   :type server: string
+#:
+#:   Remote copy from a policy hub server encryption enabled.
+#:
+body copy_from cfpropane_failsafe_hub_scp(path, server)
+{
+  source   => "$(path)";
+  compare  => "digest";
+  trustkey => "false";
+  encrypt  => "true";
+  verify   => "true";
+  purge    => "true";
+
+  !am_policy_hub::
+    servers => { "$(server)" };
+}
+
+
+#:
+#: delete
+#: ^^^^^^
+#:
+#: .. cf3:body:: delete cfpropane_failsafe_tidy
+#:
+#:   Delete everything from target path in current promise.
+#:
+body delete cfpropane_failsafe_tidy
+{
+  dirlinks => "delete";
+  rmdirs   => "true";
+}
+
+
+#:
+#: depth_search
+#: ^^^^^^^^^^^^
+#:
+#: .. cf3:body:: depth_search cfpropane_failsafe_recurse(level)
+#:
+#:   :param level: Maximum depth level for search. If "inf", depth level
+#:                 will be unlimited.
+#:   :type level: int or string
+#:
+#:   Search target directory in current promise up to given depth level.
+#:
+body depth_search cfpropane_failsafe_recurse(level)
+{
+  depth => "$(level)";
+}
+
+#: .. cf3:body:: depth_search cfpropane_failsafe_recurse_with_base(level)
+#:
+#:   :param level: Maximum depth level for search. If "inf", depth level
+#:                 will be unlimited.
+#:   :type level: int or string
+#:
+#:   Search target directory in current provise up to given depth level
+#:   including base directory.
+#:
+body depth_search cfpropane_failsafe_recurse_with_base(level)
+{
+  depth  => "$(level)";
+  include_basedir => "true";
+}
+
+
+#:
+#: edit_defaults
+#: ^^^^^^^^^^^^^
+#:
+#: .. cf3:body:: edit_defaults cfpropane_failsafe_empty
+#:
+#:   Empty target file from current promise before edition.
+#:
+body edit_defaults cfpropane_failsafe_empty
+{
+  empty_file_before_editing => "true";
+}
+
+
+#:
+#: edit_field
+#: ^^^^^^^^^^
+#:
+#: .. cf3:body:: edit_field cfpropane_failsafe_col(sep, col, val, method)
+#:
+#:   :param sep: Regular expression used to separate fields in a line.
+#:   :type sep: string
+#:
+#:   :param col: Index of the field to act on.
+#:   :type col: int
+#:
+#:   :param val: Set given field to given value.
+#:   :type val: string
+#:
+#:   :param method: Method by which to edit the field. Valid inputs are:
+#:
+#:                  - ``append``, append specified value to the end of
+#:                    the field.
+#:                  - ``prepend``, Prepend specified value to the
+#:                    beginning of the field.
+#:                  - ``alphanum``, insert specified value into the field
+#:                    keeping all the values in alphanumerically sorter
+#:                    order.
+#:                  - ``set``, replace the entire field with the new
+#:                    value.
+#:                  - ``delete``, delete specified value from the field
+#:                    if present.
+#:   :type method: string
+#:
+#:   Edit given column from a tabular text file.
+#:
+body edit_field cfpropane_failsafe_col(sep, col, val, method)
+{
+  field_separator    => "$(sep)";
+  select_field       => "$(col)";
+  value_separator    => ",";
+  field_value        => "$(val)";
+  field_operation    => "$(method)";
+  extend_fields      => "true";
+  allow_blank_fields => "true";
+}
+
+#:
+#: edit_line
+#: ^^^^^^^^^
+#:
+#: .. cf3:bundle:: edit_line cfpropane_failsafe_set_variable_value(v)
+#:
+#:   :param v: An associative array with keys and values to write into
+#:             the file.
+#:
+#:             #. Keys of the array are the left hand side while values
+#:                are the right hand side:
+#:
+#:                .. code-block:: cf3
+#:
+#:                  "foo[lhs-1]" string => "bar-1";
+#:                  "foo[lhs-2]" string => "bar-2";
+#:
+#:             #. The parameter passed to this promise is the fully
+#:                qualified name of the array:
+#:
+#:                .. code-block:: cf3
+#:
+#:                  bundlename.foo
+#:
+#:   :type v: array
+#:
+#:   Set variables in text file of the form::
+#:
+#:     LHS=RHS
+#:
+bundle edit_line cfpropane_failsafe_set_variable_values(v)
+{
+  vars:
+    "index"
+      slist => getindices("$(v)");
+
+    "cindex[$(index)]"
+      string => canonify("$(index)");
+
+
+  # First try to edit the variable if it has been defined already.
+  field_edits:
+    "\s*$(index)\s*=.*"
+      edit_field => cfpropane_failsafe_col(
+        "=", "2", "$($(v)[$(index)])", "set"
+      ),
+      classes    => cfpropane_failsafe_if_ok(
+        "cfpropane_failsafe_edited_$(cindex[$(index)])"
+      ),
+      comment    => "Match a line starting like \"foo = bar\"";
+
+
+  # Insert the key=value line if none has been found.
+  insert_lines:
+    "$(index)=$($(v)[$(index)])"
+      comment    => "Insert a variable definition",
+      ifvarclass => "!cfpropane_failsafe_edited_$(cindex[$(index)])";
+}
+
+
+#:
+#: link_from
+#: ^^^^^^^^^
+#:
+#: .. cf3:body:: link_from cfpropane_failsafe_ln_s(from)
+#:
+#:   :param path: Path destination to link promisee from.
+#:   :type path: string
+#:
+#:   Create a symbolic link to given path.
+#:
+body link_from cfpropane_failsafe_ln_s(path)
+{
+  link_type      => "symlink";
+  source         => "$(path)";
+  when_no_source => "force";
+}
+
+
+#:
+#: perms
+#: ^^^^^
+#:
+#: .. cf3:body:: perms cfpropane_failsafe_system_owned(mode)
+#:
+#:   :param mode: File permissions. May be a symbolic string or numerical
+#:                as for the parameters accepted by ``chmod``.
+#:   :type mode: string
+#:
+#: Set given permissions with ``root`` as owner and group.
+#:
+body perms cfpropane_failsafe_system_owned(mode)
+{
+  mode   => "$(mode)";
+  owners => { "root" };
+  groups => { "root" };
+  rxdirs => "true";
+}
+

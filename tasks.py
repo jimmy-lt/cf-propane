@@ -32,6 +32,7 @@ import yaml
 import jinja2
 
 from copy import deepcopy
+from functools import reduce
 from contextlib import suppress
 
 from invoke import Collection, task, run
@@ -508,6 +509,7 @@ class env(object):
     """
     ENVIRONMENT_DEFAULTS = {
         'project': {
+            'default_env': 'dev',
             'build_d': 'build',
             'src_d': 'src',
             'lib_d': 'lib',
@@ -638,11 +640,80 @@ class env(object):
                         target[k] = deepcopy(v)
 
 
+    @classmethod
+    def update_context(cls, environment, *ctx):
+        """Update Jinja2 context dictionary with useful elements from
+        the project.
+
+        :param dict environment: Current project environment.
+        :param dict ctx: Context dictionary to be updated.
+
+        """
+        context_functions = (
+            cls.context_add_project,
+            cls.context_cf_input_files,
+        )
+
+        for c in ctx:
+            for fn in context_functions:
+                fn(environment, c)
+
+
+    @classmethod
+    def context_add_project(cls, environment, ctx):
+        """Add project information from the environment into the context.
+
+        :param dict environment: Current project environment.
+        :param dict ctx: Context dictionary to be updated.
+
+        """
+        cls.update(
+            ctx.setdefault('project', {}),
+            environment.get('project', {})
+        )
+
+
+    @staticmethod
+    def context_cf_input_files(environment, ctx):
+        """List all the files to be used by CFEngine as input files.
+
+        :param dict environment: Current project environment.
+        :param dict ctx: Context dictionary to be updated.
+
+        """
+        input_patterns = (
+            environment['project']['src_d'],
+            environment['project']['lib_d'],
+        )
+
+        exclude_files = (
+            'promises.cf',
+            'failsafe.cf',
+        )
+
+        src_sep  = os.path.join(environment['project']['src_d'], '')
+        cf_files = (
+            f.replace(src_sep, '')
+            for f in fs.lstree(input_patterns, recursive=True)
+            if f.endswith('.cf') and os.path.isfile(f)
+        )
+
+        ctx_cf3 = ctx.setdefault('cf3', {})
+        ctx_cf3['input_files'] = tuple(
+            f
+            for f in cf_files
+            if not reduce(
+                lambda x, y: x or y,
+                map(lambda x: x in f, exclude_files)
+            )
+        )
+
+
 #
 # Task definitions
 # ----------------
 
-ENVIRONMENT = env.load('', use_defaults=True)
+ENVIRONMENT = env.load('env.conf', use_defaults=True)
 
 
 #
@@ -669,8 +740,13 @@ def project_clean():
     fs.rmtree(patterns)
 
 
-@task(project_clean, name='build')
-def project_build():
+_proj_build_help = {
+    'environment': "Project environment to be built. Defaults to {}.".format(
+        ENVIRONMENT.get('default_env', 'dev')
+    ),
+}
+@task(project_clean, name='build', help=_proj_build_help)
+def project_build(environment=ENVIRONMENT.get('default_env', 'dev')):
     """Build the project."""
     build_d = ENVIRONMENT['project']['build_d']
     src_d   = ENVIRONMENT['project']['src_d']
@@ -680,7 +756,20 @@ def project_build():
     fs.copytree(src_d, build_d)
     fs.copytree(lib_d, os.path.join(build_d, 'lib'))
 
+    proj_env = [
+        x
+        for x in ENVIRONMENT.get('environment', {})
+        if x.get('name', '') == environment
+    ][0]
+
     context = {}
+    with suppress(AttributeError):
+        context = {
+            k: v
+            for k, v in proj_env.get('variables', {}).items()
+        }
+    env.update_context(ENVIRONMENT, context)
+
     tpl_env = jinja2.Environment(
         extensions = ['jinja2.ext.loopcontrols', ],
         loader = jinja2.PrefixLoader({

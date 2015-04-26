@@ -49,7 +49,7 @@
 body common control
 {
   bundlesequence => { "cfpropane_failsafe" };
-  version => "0.1a";
+  version => "{{ project.version }}";
 }
 
 

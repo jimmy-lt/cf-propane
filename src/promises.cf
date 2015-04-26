@@ -1,0 +1,58 @@
+#: promises.cf
+#: ===========
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#: Entry point for CFEngine. This is where everything starts. If this
+#: file should fail to be parsed, ``failsafe.cf`` is called in order to
+#: recover the CFEngine environment.
+#:
+#: The ``promises.cf`` file is kept simple. It's main function is to feed
+#: CFEngine with all the policy files and to start the configuration
+#: process.
+#:
+
+#:
+#: Controls
+#: --------
+#:
+#: .. cf3:body:: common control
+#:
+#:   Entry point for the ``promises.cf`` file. Set control promises
+#:   common to all CFEngine components and start configuration process for
+#:   calling host.
+#:
+body common control
+{
+  any::
+    bundlesequence => {};
+
+    inputs => {
+      {% for input in cf3.input_files %}
+      "{{ input }}",
+      {% endfor %}
+    };
+
+    version => "{{ project.version }}";
+}
+

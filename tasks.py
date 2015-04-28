@@ -417,17 +417,21 @@ class fs(object):
 class docstring(object):
     """Namespace for docstring operations.
 
-    :attribute COMMENT_START_WITH: Docstring comment line identifier.
+    :attribute COMMENT_START_WITH: Normal comment line identifier.
+    :attribute DOCSTRING_START_WITH: Docstring comment line identifier.
 
     """
-    COMMENT_START_WITH = '#:'
+    COMMENT_START_WITH = '#'
+    DOCSTRING_START_WITH = '#:'
+
+    DOCSTRING_INDENT = 2
 
     EXT_CF  = '.cf'
     EXT_RST = '.rst'
 
 
     @classmethod
-    def extract(cls, path, dst):
+    def extract(cls, path, dst, insert_code=False):
         """Extract specially formatted comment strings (a.k.a.
         docstrings) from file and save the result in *dst*.
 
@@ -438,41 +442,65 @@ class docstring(object):
         :param str dst: Path to the file in which to write extracted
                         docstrings.
 
+        :param bool insert_code: Shall the documented code also be
+                                 inserted in the resulting document?
+                                 Defaults to ``False``.
+
         :returns: ``True`` if result file has been written, ``False``
                   otherwise.
         :rtype: bool
 
         """
-        comment_start_re = re.compile(
-            r'{}\s?'.format(cls.COMMENT_START_WITH)
+        docstring_start_re = re.compile(
+            r'{}\s?'.format(cls.DOCSTRING_START_WITH)
         )
 
         doclines = []
         doc_app  = doclines.append
-        try:
-            with open(path, 'r') as fd:
-                for line in fd:
-                    line = line.strip()
-                    if not line.startswith(cls.COMMENT_START_WITH):
-                        continue
-                    doc_app(comment_start_re.sub('', line) + '\n')
-        except OSError:
-            return False
+        with suppress(OSError), open(path, 'r') as fd:
+            code_block = False
 
-        if not doclines:
-            return False
+            for line in fd:
+                # Strip line to get the comment symbol on first position.
+                sline = line.strip()
 
-        try:
-            with open(dst, 'w') as fd:
+                # Start by looking if we have a docstring.
+                if sline.startswith(cls.DOCSTRING_START_WITH):
+                    # Insert blank line between previous code block
+                    # and next docstring line.
+                    if code_block:
+                        doc_app('\n')
+                        code_block = False
+
+                    ds_line = docstring_start_re.sub('', sline)
+                    doc_app('{}\n'.format(ds_line))
+
+                # If this is a blank line and we are not writing code
+                # or if this is a comment line, skip.
+                elif (not sline and not code_block) \
+                    or sline.startswith(cls.COMMENT_START_WITH):
+                    continue
+
+                # Any other lines should be code to be inserted.
+                elif insert_code:
+                    if not code_block:
+                        doc_app('.. code-block:: cf3\n\n')
+                        code_block = True
+                    doc_app(
+                        '{}{}\n'.format(
+                            ' ' * (cls.DOCSTRING_INDENT), line.rstrip()
+                        )
+                    )
+
+        if doclines:
+            with suppress(OSError), open(dst, 'w') as fd:
                 fd.writelines(doclines)
-        except OSError:
-            return False
-
-        return True
+                return True
+        return False
 
 
     @classmethod
-    def to_dir(cls, src, dst):
+    def to_dir(cls, src, dst, insert_code=False):
         """Given a cf-propane *src* directory, extract all the docstrings
         from the source files and save the result in *dst*.
 
@@ -480,6 +508,10 @@ class docstring(object):
                         project.
         :param str dst: Path to directory in which to save extracted
                         docstring files.
+
+        :param bool insert_code: Shall the documented code also be
+                                 included in the resulting document?
+                                 Defaults to ``False``.
 
         """
         cf_files = [
@@ -493,7 +525,7 @@ class docstring(object):
 
         fs.copytree(src, dst)
         for source, dest in cf_files:
-            cls.extract(source, dest)
+            cls.extract(source, dest, insert_code)
         fs.rmdir(dst, recursive=True)
 
 
@@ -515,6 +547,7 @@ class env(object):
             'lib_d': 'lib',
         },
         'doc': {
+            'insert_code': True,
             'src_d': 'doc',
             'target': 'html',
         },
@@ -816,9 +849,13 @@ _doc_build_help = {
     'target': "Targeted documentation format. Default to {}.".format(
         ENVIRONMENT['doc']['target']
     ),
+    'code': "Insert documented code into documentation. Default to {}.".format(
+        ENVIRONMENT['doc']['insert_code']
+    ),
 }
 @task(doc_clean, name='build', help=_doc_build_help)
-def doc_build(target=ENVIRONMENT['doc']['target']):
+def doc_build(target=ENVIRONMENT['doc']['target'],
+              code=ENVIRONMENT['doc']['insert_code']):
     """Build documentation using Sphinx."""
     build_d = ENVIRONMENT['doc']['build_d']
     out_d   = os.path.join(build_d, 'output', target)
@@ -827,7 +864,11 @@ def doc_build(target=ENVIRONMENT['doc']['target']):
     msg.write(msg.INFORMATION, 'Building documentation')
 
     shutil.copytree(ENVIRONMENT['doc']['src_d'], build_d)
-    docstring.to_dir(ENVIRONMENT['project']['src_d'], src_d)
+    docstring.to_dir(
+        ENVIRONMENT['project']['src_d'],
+        src_d,
+        insert_code=code
+    )
 
     run(
         'sphinx-build -b {target} {build_d} {out_d}'.format(

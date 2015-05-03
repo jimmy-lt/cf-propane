@@ -543,6 +543,7 @@ class env(object):
         'project': {
             'default_env': 'dev',
             'build_d': 'build',
+            'skel_d': 'skel.d',
             'src_d': 'src',
             'lib_d': 'lib',
         },

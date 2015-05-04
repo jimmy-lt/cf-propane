@@ -675,6 +675,44 @@ class env(object):
 
 
     @classmethod
+    def render_tree(cls, context, src, dst):
+        """Run given *src* directories through the Jinja2 template engine
+        and render the result in the *dst* folder.
+
+        :param dict context: Context dictionary to pass to Jinja2.
+
+        :param dict src: Dictionary of source directories to be rendered.
+                         Keys of this dictionary should be paths relative
+                         to the destination and values the original path
+                         for the template files::
+
+                           >>> src = {
+                           ...   '.': '/path/to/foo',
+                           ...   'bar': '/path/to/bar',
+                           ... }
+
+                          Files from ``/path/to/foo`` will be rendered in
+                          ``dst/.`` while files from ``/path/to/bar``
+                          will be in ``dst/bar``.
+
+        """
+        loader = {k: jinja2.FileSystemLoader(v) for k, v in src.items()}
+        engine = jinja2.Environment(
+            extensions = ['jinja2.ext.loopcontrols', ],
+            loader = jinja2.PrefixLoader(loader),
+            trim_blocks = True,
+            lstrip_blocks = True
+        )
+
+        for name, path in src.items():
+            fs.copytree(path, os.path.join(dst, name))
+
+        for name in engine.list_templates():
+            with open(os.path.join(dst, name), 'w') as fp:
+                fp.write(engine.get_template(name).render(context))
+
+
+    @classmethod
     def update_context(cls, environment, *ctx):
         """Update Jinja2 context dictionary with useful elements from
         the project.
@@ -782,19 +820,18 @@ _proj_build_help = {
 @task(project_clean, name='build', help=_proj_build_help)
 def project_build(environment=ENVIRONMENT.get('default_env', 'dev')):
     """Build the project."""
-    build_d = ENVIRONMENT['project']['build_d']
-    src_d   = ENVIRONMENT['project']['src_d']
-    lib_d   = ENVIRONMENT['project']['lib_d']
-    bld_log = os.path.join(build_d, '.build')
-
-    fs.copytree(src_d, build_d)
-    fs.copytree(lib_d, os.path.join(build_d, 'lib'))
-
-    proj_env = [
+    build_d   = ENVIRONMENT['project']['build_d']
+    build_log = os.path.join(build_d, '.build')
+    proj_env  = [
         x
         for x in ENVIRONMENT.get('environment', {})
         if x.get('name', '') == environment
     ][0]
+
+    dirs = {
+        '.': ENVIRONMENT['project']['src_d'],
+        'lib': ENVIRONMENT['project']['lib_d'],
+    }
 
     context = {}
     with suppress(AttributeError):
@@ -804,24 +841,17 @@ def project_build(environment=ENVIRONMENT.get('default_env', 'dev')):
         }
     env.update_context(ENVIRONMENT, context)
 
-    tpl_env = jinja2.Environment(
-        extensions = ['jinja2.ext.loopcontrols', ],
-        loader = jinja2.PrefixLoader({
-            '.': jinja2.FileSystemLoader(src_d),
-            'lib': jinja2.FileSystemLoader(lib_d),
-        }),
-        trim_blocks = True,
-        lstrip_blocks = True
-    )
+    rendered = [
+        os.path.join(build_d, origine.replace(path, name))
+        for name, path in dirs.items()
+        for origine in fs.lstree(path, recursive=True)
+    ]
 
-    for tpl_name in tpl_env.list_templates():
-        tpl = tpl_env.get_template(tpl_name)
-        bld = os.path.join(build_d, tpl_name)
+    msg.write(msg.INFORMATION, 'Building project', *rendered)
+    env.render_tree(context, dirs, build_d)
 
-        msg.write(msg.INFORMATION, 'Building ' + bld)
-        with open(bld, 'w') as fp_tpl, open(bld_log, 'w') as fp_bld:
-            fp_tpl.write(tpl.render(context))
-            fp_bld.write(bld + '\n')
+    with suppress(OSError), open(build_log, 'w') as fp:
+        fp.write('\n'.join(rendered))
 
 
 ns_proj = Collection('proj')

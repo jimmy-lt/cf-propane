@@ -806,9 +806,10 @@ def project_clean():
             patterns = [x for x in fp.read().splitlines() if x]
         patterns.append(bld_log)
 
-    lines = ['Cleaning ' + x for x in fs.shexpand(patterns)]
+    lines = [x for x in fs.shexpand(patterns)]
     if lines:
-        msg.write(msg.INFORMATION, *sorted(lines, reverse=True))
+        msg.write(msg.INFORMATION,
+                  'Cleaning project', *sorted(lines, reverse=True))
     fs.rmtree(patterns)
 
 
@@ -870,9 +871,10 @@ def doc_clean():
     """Clean project folder from built documentation files."""
     patterns = [ENVIRONMENT['doc']['build_d'], ]
 
-    lines = ['Cleaning ' + x for x in fs.shexpand(patterns)]
+    lines = [x for x in fs.shexpand(patterns)]
     if lines:
-        msg.write(msg.INFORMATION, *sorted(lines, reverse=True))
+        msg.write(msg.INFORMATION,
+                  'Cleaning documentation', *sorted(lines, reverse=True))
     fs.rmtree(patterns)
 
 
@@ -933,7 +935,8 @@ def test_promises(file=''):
         opts.append('--file {}'.format(file))
 
     if not fs.symlink(build_d, inputs, force=True, target_is_directory=True):
-        msg.write(msg.ERROR, 'Could not create symlink to build directory.')
+        msg.write(msg.ERROR,
+                  'Could not create symlink to build directory.')
         sys.exit(1)
 
     msg.write(msg.INFORMATION, 'Testing promises.')
@@ -966,12 +969,13 @@ def clean():
     ]
 
     lines = [
-        'Cleaning ' + x
+        x
         for x in fs.lstree(patterns, recursive=True, include_path=True)
         if os.path.isdir(x)
     ]
     if lines:
-        msg.write(msg.INFORMATION, *sorted(lines, reverse=True))
+        msg.write(msg.INFORMATION,
+                  'Cleaning environment', *sorted(lines, reverse=True))
     msg.write(msg.INFORMATION, 'Done!')
 
     fs.rmdir(patterns, recursive=True)

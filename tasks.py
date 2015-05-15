@@ -585,6 +585,52 @@ class env(object):
 
 
     @classmethod
+    def dflatten(cls, mapping, parent_key='', sep='.'):
+        """Flatten nested directories to one depth level and join the
+        key names of child directories with *sep*.
+
+        .. code-block:: py
+
+          >>> d = {
+          ...     'foo': 'foo',
+          ...     'bar': {
+          ...         'baz': 'baz',
+          ...     },
+          ... }
+          >>> env.dflatten(d)
+          {'foo': 'foo', 'bar.baz': 'baz'}
+
+        :param dict mapping: Dictionary to be flatttened.
+
+        :param string parent_key: Name of the upper level key. Defaults
+                                  to empty string.
+
+        :param string sep: Separator to be used when joining the keys.
+                           Defaults to ``.``.
+
+                           .. note:: The default value for *sep* implies
+                                     that any key from *mapping* should
+                                     be a string if ``TypeError`` is
+                                     raised while concanating the key
+                                     with *sep*, this key will be
+                                     skipped.
+
+        """
+        d = {}
+        for k, v in mapping.items():
+            try:
+                key = parent_key + sep + k if parent_key else k
+            except TypeError:
+                continue
+
+            if isinstance(v, dict):
+                cls.update(d, cls.dflatten(v, key, sep))
+            else:
+                d[key] = deepcopy(v)
+        return d
+
+
+    @classmethod
     def load(cls, *pattern, use_defaults=False):
         """Load a environment file into a new namespace.
 

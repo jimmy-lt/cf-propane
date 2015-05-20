@@ -721,6 +721,64 @@ class env(object):
 
 
     @classmethod
+    def expand_context_string(cls, context, value, marker='++'):
+        """Expand any marked variable found in given string by their
+        corresponding value from the *context* dictionary.
+
+        The *marker* enclose a *context* variable in the dotted form. For
+        example, the following string ``This is a ++foo.bar++ example``
+        will be altered using the value from ``context['foo']['bar']``.
+
+        :param dict context: Templating context.
+
+        :param str value: String value to be altered.
+
+        :param str marker: Marker used to enclose context variables.
+                           Defaults to ``++``.
+
+        """
+        flat_context = cls.dflatten(context)
+        for sub in value.split(marker):
+            if sub in flat_context:
+                value = value.replace(sub, flat_context[sub])
+
+        return value.replace(marker, '')
+
+
+    @classmethod
+    def move_template(cls, context, *pattern, recursive=False, marker='++'):
+        """In-place move any file where *marker* is part of the file
+        name and marked variable is found in given *context*.
+
+        :param dict context: Templating context.
+
+        :param str pattern: Location pattern to the file or directory to
+                            move. Multiple may be given.
+
+        :param bool recursive: If path is a directory, recursively rename
+                               any element found. Defaults to ``False``.
+
+        :param str marker: Marker used to enclose context variables.
+                           Defaults to ``++``.
+
+        """
+        lst  = fs.lstree(pattern, recursive=recursive, include_path=True)
+        lst += [x for x in fs.shexpand(pattern) if os.path.isfile(x)]
+        if not lst:
+            return
+
+        move = []
+        for path in sorted(lst, reverse=True):
+            new_path = cls.expand_context_string(context, path)
+            if path != new_path:
+                move.append((path, new_path))
+
+        for src, dst in move:
+            with suppress(OSError):
+                shutil.move(src, dst)
+
+
+    @classmethod
     def render_tree(cls, context, src, dst):
         """Run given *src* directories through the Jinja2 template engine
         and render the result in the *dst* folder.

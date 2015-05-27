@@ -1,0 +1,127 @@
+#: agent_{{ agent.name }}.cf
+#: ======{% for _ in agent.name %}={% endfor %}===
+#:
+{% include skel.template['cf-copying.tpl'] %}
+#  This is the entry point for agent ``{{ agent.name }}``.
+#  The following is defined here:
+#
+#  - policy files to be loaded with the agent
+#  - variables to ease policy definition within the agent
+{% if agent.has_knowledge %}
+#  - enabling or disabling knowledge loading
+{% endif %}
+#
+#
+#: < FILE CONTENT DESCRIPTION HERE >
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: common {% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}
+#:
+{% if agent.has_knowledge %}
+  {% if agent.namespace %}
+#:   :classes {{ agent.namespace }}_agent_{{ agent.name }}_disable_knowledge:
+#:     Disable loading of this agent's knowledge if defined.
+#:
+#:   :classes {{ agent.namespace }}\:agent_{{ agent.name }}_disable_knowledge:
+#:     Disable loading of this agent's knowledge if defined.
+  {% else %}
+#:   :classes agent_{{ agent.name }}_disable_knowledge:
+#:     Disable loading of this agent's knowledge if defined.
+  {% endif %}
+{% endif %}
+{% for dirname in agent.dirnames %}
+#:
+#:   .. cf3:variable:: path[{{ dirname }}.d]
+#:
+#:     :type: string
+#:
+#:     Path to the ``{{ dirname }}`` directory for agent
+#:     ``{{ agent.name }}``.
+{% endfor %}
+#:
+#:   .. cf3:variable:: inputs
+#:
+#:     :type: slist
+#:
+#:     Policy files to be loaded with the agent.
+#:
+#:   Common definitions for the
+#:   :cf3:bundle:`agent {% if agent.namespace %}{{ agent.namespace }}:{% endif %}{{ agent.name }}`
+#:   agent.
+#:
+bundle common agent_{{ agent.name }}
+{
+  vars:
+    any::
+      {% if agent.namespace %}
+      "namespace" string => "{{ agent.namespace }}";
+      {% endif %}
+      "name" string => "{{ agent.name }}";
+
+      {% for dirname in agent.dirnames %}
+      "path[{{ dirname }}.d]"
+        string  => "$(this.promise_dirname)/{{ dirname }}",
+        comment => "Path to the agent's {{ dirname }} directory",
+        handle  => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}_vars_path_{{ dirname }}_d";
+
+      {% endfor %}
+    {% if agent.has_knowledge %}
+    !{% if agent.namespace %}{{ agent.namespace }}_{% endif %}agent_{{ agent.name }}_disable_knowledge{% if agent.namespace %}.!{{ agent.namespace }}:agent_{{ agent.name }}_disable_knowledge{% endif %}::
+      # Files listed here will be loaded by CFEngine when loading this
+      # agent.
+      "inputs"
+        slist => {
+          {% for f in agent.files.promises %}
+          translatepath("$(this.path[promises.d])/{{ f }}"),
+          {% endfor %}
+          {% for f in agent.files.knowledge %}
+          translatepath("$(this.path[knowledge.d])/{{ f }}"),
+          {% endfor %}
+        },
+        comment => "List of promise files bundled with the {{ agent.name }} agent",
+        handle  => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}_vars_inputs_no_knowledge";
+
+    {%+ if agent.namespace %}{{ agent.namespace }}_{% endif %}agent_{{ agent.name }}_disable_knowledge{% if agent.namespace %}|{{ agent.namespace }}:agent_{{ agent.name }}_disable_knowledge{% endif %}::
+    {% endif %}
+      # Files listed here will be loaded by CFEngine when loading this
+      # agent.
+      "inputs"
+        slist => {
+          {% for f in agent.files.promises %}
+          translatepath("$(this.path[promises.d])/{{ f }}"),
+          {% endfor %}
+        },
+        comment => "List of promise files bundled with the {{ agent.name }} agent",
+        handle  => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}_vars_inputs";
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+{% if agent.namespace %}
+#:   Define agent's policy files to be loaded by CFEngine and set the
+#:   content of this file in the
+#:   :cf3:ns:`{{ agent.namespace }}` namespace.
+{% else %}
+#:   Define agent's policy files to be loaded by CFEngine.
+{% endif %}
+#:
+body file control
+{
+{% if agent.namespace %}
+  namespace => "{{ agent.namespace }}";
+{% endif %}
+  inputs => { @(agent_{{ agent.name }}.inputs) };
+}
+

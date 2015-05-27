@@ -1,0 +1,42 @@
+#: promises/{{ agent.name }}.cf
+#: ========={% for _ in agent.name %}={% endfor %}===
+#:
+{% include skel.template['cf-copying.tpl'] %}
+#: < FILE CONTENT DESCRIPTION HERE >
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: agent {% if agent.namespace %}{{ agent.namespace }}:{% endif %}{{ agent.name }}
+#:
+#:   < AGENT DESCRIPTION HERE >
+#:
+bundle agent {{ agent.name }}
+{
+  vars:
+    any::
+      "foo" string => "bar";
+}
+{% if agent.namespace %}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`{{ agent.namespace }}`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "{{ agent.namespace }}";
+}
+{% endif %}
+

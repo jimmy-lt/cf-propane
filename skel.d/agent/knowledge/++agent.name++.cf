@@ -1,0 +1,74 @@
+#: knowledge/{{ agent.name }}.cf
+#: =========={% for _ in agent.name %}={% endfor %}===
+#:
+{% include skel.template['cf-copying.tpl'] %}
+#  Knowledge is system information that the agent may need for its own
+#  usage or may gather for exposition to other agents or policies.
+#
+#  Knowledge is gathered using a common bundle, and is calculated
+#  as soon as CFEngine loads. Despite CFEngine's internal safeguards,
+#  auto loading of the knowledge may imply some loads on the system. To
+#  prevent that the user may choose to load or not the knowledge with the
+#  agent.
+#
+#
+#: < FILE CONTENT DESCRIPTION HERE >
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: common {% if agent.namespace %}{{ agent.namespace }}:{% endif %}knowledge_{{ agent.name }}
+#:
+#:  :defines knowledge_{{ agent.name }}_have_bar:
+#:    This class is defined when the ``bar`` program can be found on the
+#:    system.
+#:
+#:  .. cf3:variable:: foo
+#:
+#:    :type: string
+#:
+#:    Output from the ``foo`` program.
+#:
+#:   < BUNDLE DESCRIPTION HERE >
+#:
+bundle common knowledge_{{ agent.name }}
+{
+  vars:
+    # Knowledge variables can have any name and will be called as:
+    #   $(knowledge_{{ agent.name }}.foo)
+    any::
+      "foo" string => execresult("/usr/local/bin/foo", "noshell");
+
+
+  # It is advised to keep classes name in the following format:
+  #   knowledge_{{ agent.name }}_my_knowledge
+  classes:
+    any::
+      "knowledge_{{ agent.name }}_have_bar"
+        expression => fileexist("/usr/local/bin/bar"),
+        comment    => "Make sure the ``bar`` program is in the system",
+        handle     => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}knowledge_{{ agent.name }}_classes_have_bar";
+}
+{% if agent.namespace %}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`{{ agent.namespace }}`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "{{ agent.namespace }}";
+}
+{% endif %}
+

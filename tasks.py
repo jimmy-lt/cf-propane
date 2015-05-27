@@ -552,6 +552,9 @@ class env(object):
             'src_d': 'doc',
             'target': 'html',
         },
+        'src': {
+            'namespace': 'cfpropane',
+        },
     }
     ENVIRONMENT_DEFAULTS['doc']['build_d'] = os.path.join(
         ENVIRONMENT_DEFAULTS['project']['build_d'], 'doc'
@@ -817,6 +820,90 @@ class env(object):
 
 
     @classmethod
+    def skel_create_agent(cls, environment, name, **kwargs):
+        """Create a new agent called *name*.
+
+        :param dict environment: Current project environment.
+
+        :param str dst: Path to the alternative directory in which to
+                        create the agent.
+
+        :param bool has_knowledge: Will the agent be gathering some
+                               knowledge? Defaults to ``False``.
+
+        :param str namespace: Namespace in which the agent should be
+                              defined. Defaults to ``cfpropane``.
+
+        """
+        skel_d = environment['project']['skel_d']
+
+        dst = kwargs.get('dst', '') or os.path.join(
+            environment['project']['src_d'], 'agents', name
+        )
+        has_knowledge = kwargs.get('has_knowledge', False)
+        namespace = kwargs.get('namespace', '') \
+                    or environment['src']['namespace']
+
+        tplsrc = {
+            '.': os.path.join(skel_d, 'agent'),
+            '.skel': os.path.join(skel_d, '.skel', 'templates'),
+        }
+
+        ctx = {
+            'agent': {
+                'has_knowledge': has_knowledge,
+                'name': name,
+                'namespace': namespace,
+            },
+        }
+
+        files = {
+            d: tuple([
+                cls.expand_context_string(
+                    ctx, p.replace(os.path.join(tplsrc['.'], d, ''), '')
+                )
+                for p in fs.lstree(os.path.join(tplsrc['.'], d), True)
+                if os.path.isfile(p)
+            ])
+            for d in [
+                p.replace(os.path.join(tplsrc['.'], ''), '')
+                for p in fs.lstree(tplsrc['.'])
+                if os.path.isdir(p)
+            ]
+        }
+
+        if not has_knowledge:
+            with suppress(KeyError):
+                files.pop('knowledge')
+
+        template = {
+            f: os.path.join('.skel', f)
+            for f in [
+                p.replace(os.path.join(tplsrc['.skel'], ''), '')
+                for p in fs.lstree(tplsrc['.skel'], recursive=True)
+                if os.path.isfile(p)
+            ]
+        }
+
+        cls.update(ctx, {
+            'agent': {
+                'dirnames': tuple(files.keys()),
+                'files': files,
+            },
+            'skel': {
+                'template': template,
+            },
+        })
+
+        cls.render_tree(ctx, tplsrc, dst)
+        if not has_knowledge:
+            fs.rmtree(os.path.join(dst, 'knowledge'))
+        cls.move_template(ctx, dst, recursive=True)
+
+        fs.rmtree(os.path.join(dst, '.skel'))
+
+
+    @classmethod
     def update_context(cls, environment, *ctx):
         """Update Jinja2 context dictionary with useful elements from
         the project.
@@ -959,11 +1046,41 @@ def project_build(environment=ENVIRONMENT.get('default_env', 'dev')):
         fp.write('\n'.join(rendered))
 
 
+#
+# Project task namespace
+# """"""""""""""""""""""
+
 ns_proj = Collection('proj')
 ns_proj.add_task(project_build)
 ns_proj.add_task(project_clean)
 
 ns.add_collection(ns_proj)
+
+
+#
+# Skeleton tasks
+# ^^^^^^^^^^^^^^
+
+_skel_agent_help = {
+    'name': "Name of the element to create.",
+    'destination': "Alternate destination for the created agent",
+    'knowledge': "Will the agent be gathering some knowledge. Default: False.",
+}
+@task(name='agent', help=_skel_agent_help)
+def skel_agent(name, destination='', knowledge=False):
+    """Create a new project element from skeleton."""
+    env.skel_create_agent(ENVIRONMENT, name,
+                          dst=destination, has_knowledge=knowledge)
+
+
+#
+# Skeleton task namespace
+# """""""""""""""""""""""
+
+ns_skel = Collection('skel')
+ns_skel.add_task(skel_agent)
+
+ns.add_collection(ns_skel)
 
 
 #

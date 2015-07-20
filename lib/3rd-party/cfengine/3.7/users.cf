@@ -39,72 +39,34 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.6.0 to 3.6.x
-# Guest environments bodies
+# For CFEngine Core: 3.7.0 to 3.7.x
+# Users bodies
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
-##-------------------------------------------------------
-## guest_environment promises
-##-------------------------------------------------------
-
-body environment_resources kvm(name, arch, cpu_count, mem_kb, disk_file)
-# @brief An `environment_resources` body for a KVM virtual machine.
+body password plaintext_password(text)
+# @brief Sets the plaintext password for the user to `text`
+# @param text the plain text version of the password
 #
-# The `env_spec` attribute is set to a KVM XML specification.
+# **Note:** Don't use that unless you really have no choice
 #
-# @param name The name of the virtual machine
-# @param arch The architecture
-# @param cpu_count The number of CPUs the virtual machine should have
-# @param mem_kb The amount of RAM in kilobyte
-# @param disk_file The file on the host system for the virtual machine's harddrive
-#
-# **Example:**
-#
-# ```cf3
-# bundle agent manage_vm
-# {
-# guest_environments:
-#   am_vm_host::
-#     "db_server"
-#       environment_host      => atlas,
-#       environment_type      => "kvm",
-#       environment_state     => "create",
-#       environment_resources => kvm("PSQL1, "x86_64", "4", "4096", "/var/lib/libvirt/images/psql1.iso")
-# }
-# ```
+# **See also:** `hashed_password()`
 {
-      env_spec =>
-      "<domain type='kvm'>
-  <name>$(name)</name>
-  <memory>$(mem_kb)</memory>
-  <currentMemory>$(mem_kb)</currentMemory>
-  <vcpu>$(cpu_count)</vcpu>
-  <os>
-    <type arch='$(arch)'>hvm</type>
-  </os>
-  <features>
-    <acpi/>
-    <apic/>
-    <pae/>
-  </features>
-  <on_poweroff>destroy</on_poweroff>
-  <on_reboot>restart</on_reboot>
-  <on_crash>restart</on_crash>
-  <devices>
-    <emulator>/usr/bin/kvm</emulator>
-    <disk type='file' device='disk'>
-      <source file='$(disk_file)'/>
-      <target dev='vda' bus='virtio'/>
-    </disk>
-    <interface type='network'>
-      <source network='default'/>
-    </interface>
-    <input type='mouse' bus='ps2'/>
-    <graphics type='vnc' port='-1' autoport='yes'/>
-  </devices>
-</domain>";
+    format => "plaintext";
+    data => $(text);
+}
+
+body password hashed_password(hash)
+# @brief Sets the hashed password for the user to `hash`
+# @param hash the hashed representation of the password
+#
+# The hashing method is up to the platform.
+#
+# **See also:** `plaintext_password()`
+{
+    format => "hash";
+    data => $(hash);
 }

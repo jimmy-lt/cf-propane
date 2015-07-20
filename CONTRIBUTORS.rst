@@ -151,7 +151,8 @@ under and are listed in the bellow section for clarity.
 List of licensing exceptions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- lib/3rd-party/cfengine/3.6
+- lib/3rd-party/cfengine/3.7
+
 
 List of Contributors
 --------------------

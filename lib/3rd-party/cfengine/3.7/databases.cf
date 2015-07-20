@@ -39,43 +39,44 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.6.0 to 3.6.x
+# For CFEngine Core: 3.7.0 to 3.7.x
+# Databases bodies
 
-#################################################
-# CFEngine Enterprise Hub HA policy inclusion
-#################################################
-bundle common cfengine_enterprise_hub_ha
-# @brief Inputs specific to CFEngine Enterpise
+###################################################
+# If you find CFEngine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+##-------------------------------------------------------
+## database promises
+##-------------------------------------------------------
+
+body database_server local_mysql(username, password)
+# @brief Defines a MySQL server running on localhost
+# @param username The username for the server connection
+# @param password The password for the server connection
+#
+# **See also:** `db_server_owner`, `db_server_password`
 {
-  vars:
-    enable_cfengine_enterprise_hub_ha::
-
-      "input[ha_main]"
-        string => "cfe_internal/ha/ha.cf";
-      "input[ha_def]"
-        string => "cfe_internal/ha/ha_def.cf";
-
-      "classification_bundles"
-        slist => { "ha_def" };
-
-      "management_bundles"
-        slist => { "ha_main" };
-
-      "inputs" slist => getvalues(input);
-
-    !enable_cfengine_enterprise_hub_ha::
-
-      "classification_bundles"
-        slist => { "$(this.bundle)" };
-
-      "management_bundles"
-        slist => { "$(this.bundle)" };
-
-      "inputs"
-        slist => { };
-
+      db_server_owner => "$(username)";
+      db_server_password => "$(password)";
+      db_server_host => "localhost";
+      db_server_type => "mysql";
+      db_server_connection_db => "mysql";
 }
-body file control
+
+##
+
+body database_server local_postgresql(username, password)
+# @brief Defines a PostgreSQL server running on localhost
+# @param username The username for the server connection
+# @param password The password for the server connection
+#
+# **See also:** `db_server_owner`, `db_server_password`
 {
-  inputs => { @(cfengine_enterprise_hub_ha.inputs) };
+      db_server_owner => "$(username)";
+      db_server_password => "$(password)";
+      db_server_host => "localhost";
+      db_server_type => "postgres";
+      db_server_connection_db => "postgres";
 }

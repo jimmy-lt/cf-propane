@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.6.0 to 3.6.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Files bodies
 
 ###################################################
@@ -1038,11 +1038,11 @@ bundle edit_line replace_or_add(pattern,line)
       "^(?!$(eline)$)$(pattern)$"
       comment => "Replace a pattern here",
       replace_with => value("$(line)"),
-      classes => always("replace_done_$(cline)");
+      classes => scoped_classes_generic("bundle", "replace_$(cline)");
 
   insert_lines:
       "$(line)"
-      ifvarclass => "replace_done_$(cline)";
+      ifvarclass => "replace_$(cline)_reached";
 }
 
 bundle edit_line converge(marker, lines)
@@ -1858,6 +1858,15 @@ body file_select filetypes_older_than(filetypes, days)
       file_result => "file_types.mtime";
 }
 
+body file_select symlinked_to(target)
+# @brief Select symlinks that point to $(target)
+# @param target The file the symlink should point to in order to be selected
+{
+  file_types  => { "symlink" };
+  issymlinkto => { "$(target)" };
+  file_result => "issymlinkto";
+}
+
 ##-------------------------------------------------------
 ## changes
 ##-------------------------------------------------------
@@ -2091,6 +2100,15 @@ bundle agent file_make(file, str)
 # and some more text here");
 # ```
 {
+  vars:
+      "len" int => string_length($(str));
+    summarize::
+      "summary" string => format("%s...%s",
+                                string_head($(str), 18),
+                                string_tail($(str), 18));
+  classes:
+      "summarize" expression => isgreaterthan($(len), 40);
+
   files:
       "$(file)"
       create => "true",
@@ -2099,7 +2117,52 @@ bundle agent file_make(file, str)
 
   reports:
     inform_mode|EXTRA::
-      "$(this.bundle): creating $(file) with contents '$(str)'";
+      "$(this.bundle): creating $(file) with contents '$(str)'"
+      ifvarclass => "!summarize";
+
+      "$(this.bundle): creating $(file) with contents '$(summary)'"
+      ifvarclass => "summarize";
+}
+
+bundle agent file_make_mog(file, str, mode, owner, group)
+# @brief Make a file from a string with mode, owner, group
+# @param file target
+# @param str the string data
+# @param mode the file permissions in octal
+# @param owner the file owner as a name or UID
+# @param group the file group as a name or GID
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_make_mog("/tmp/z.txt", "Some text
+# and some more text here", "0644", "root", "root");
+# ```
+{
+  vars:
+      "len" int => string_length($(str));
+    summarize::
+      "summary" string => format("%s...%s",
+                                string_head($(str), 18),
+                                string_tail($(str), 18));
+  classes:
+      "summarize" expression => isgreaterthan($(len), 40);
+
+  files:
+      "$(file)"
+      create => "true",
+      edit_line => insert_lines($(str)),
+      perms => mog($(mode), $(owner), $(group)),
+      edit_defaults => empty;
+
+  reports:
+    inform_mode|EXTRA::
+      "$(this.bundle): creating $(file) with contents '$(str)', mode '$(mode)', owner '$(owner)' and group '$(group)'"
+      ifvarclass => "!summarize";
+
+      "$(this.bundle): creating $(file) with contents '$(summary)', mode '$(mode)', owner '$(owner)' and group '$(group)'"
+      ifvarclass => "summarize";
 }
 
 bundle agent file_empty(file)

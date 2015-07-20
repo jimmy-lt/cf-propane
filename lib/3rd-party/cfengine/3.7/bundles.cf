@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.6.0 to 3.6.x
+# For CFEngine Core: 3.7.0 to 3.7.x
 # Bundles
 
 ###################################################
@@ -404,13 +404,10 @@ bundle agent run_ifdefined(namespace, mybundle)
       "bundlesfound" slist => bundlesmatching("^$(namespace):$(mybundle)$");
       "count" int => length(bundlesfound);
 
-  classes:
-      "runidentified" expression => strcmp(1, $(count));
-
   methods:
       "any"
       usebundle  => $(bundlesfound),
-      ifvarclass => "runidentified";
+      ifvarclass => strcmp(1, $(count));
 
   reports:
     verbose_mode::

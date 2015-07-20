@@ -39,94 +39,72 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.6.0 to 3.6.x
-# edit_xml bundles
+# For CFEngine Core: 3.7.0 to 3.7.x
+# Guest environments bodies
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
-bundle edit_xml xml_insert_tree_nopath(treestring)
-# @brief Insert XML tree with no path
+##-------------------------------------------------------
+## guest_environment promises
+##-------------------------------------------------------
+
+body environment_resources kvm(name, arch, cpu_count, mem_kb, disk_file)
+# @brief An `environment_resources` body for a KVM virtual machine.
 #
-# This `edit_xml` bundle inserts the given XML tree.  Use with an
-# empty XML document.
+# The `env_spec` attribute is set to a KVM XML specification.
 #
-# @param treestring The XML tree, as a string
+# @param name The name of the virtual machine
+# @param arch The architecture
+# @param cpu_count The number of CPUs the virtual machine should have
+# @param mem_kb The amount of RAM in kilobyte
+# @param disk_file The file on the host system for the virtual machine's harddrive
 #
 # **Example:**
 #
 # ```cf3
-#  files:
-#      "/newfile" edit_xml => xml_insert_tree_nopath('<x>y</x>');
+# bundle agent manage_vm
+# {
+# guest_environments:
+#   am_vm_host::
+#     "db_server"
+#       environment_host      => atlas,
+#       environment_type      => "kvm",
+#       environment_state     => "create",
+#       environment_resources => kvm("PSQL1, "x86_64", "4", "4096", "/var/lib/libvirt/images/psql1.iso")
+# }
 # ```
 {
-  insert_tree:
-      '$(treestring)';
-}
-
-bundle edit_xml xml_insert_tree(treestring, xpath)
-# @brief Insert XML tree at the given XPath
-#
-# This `edit_xml` bundle inserts the given XML tree at a specific
-# XPath.  Uses `insert_tree`.
-#
-# @param treestring The XML tree, as a string
-# @param xpath A valid XPath string
-#
-# **Example:**
-#
-# ```cf3
-#  files:
-#      "/file.xml" edit_xml => xml_insert_tree('<x>y</x>', '/a/b/c');
-# ```
-{
-  insert_tree:
-      '$(treestring)' select_xpath => "$(xpath)";
-}
-
-bundle edit_xml xml_set_value(value, xpath)
-# @brief Sets or replaces a value in XML at the given XPath
-#
-# This `edit_xml` bundle sets or replaces the value at a specific
-# XPath with the given value.  Uses `set_text`.
-#
-# @param value The new value
-# @param xpath A valid XPath string
-#
-# **Example:**
-#
-# ```cf3
-#  files:
-#      "/file.xml" edit_xml => xml_set_value('hello', '/a/b/c');
-# ```
-{
-  set_text:
-      "$(value)"
-      select_xpath => "$(xpath)";
-}
-
-bundle edit_xml xml_set_attribute(attr, value, xpath)
-# @brief Sets or replaces an attribute in XML at the given XPath
-#
-# This `edit_xml` bundle sets or replaces an attribute at a specific
-# XPath with the given value.  Uses `set_attribute`.
-#
-# @param attr The attribute name
-# @param value The new attribute value
-# @param xpath A valid XPath string
-#
-# **Example:**
-#
-# ```cf3
-#  files:
-#      "/file.xml" edit_xml => xml_set_attribute('parameter', 'ha', '/a/b/c');
-# ```
-{
-  set_attribute:
-      "$(attr)"
-      attribute_value => "$(value)",
-      select_xpath => "$(xpath)";
-
+      env_spec =>
+      "<domain type='kvm'>
+  <name>$(name)</name>
+  <memory>$(mem_kb)</memory>
+  <currentMemory>$(mem_kb)</currentMemory>
+  <vcpu>$(cpu_count)</vcpu>
+  <os>
+    <type arch='$(arch)'>hvm</type>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <pae/>
+  </features>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <devices>
+    <emulator>/usr/bin/kvm</emulator>
+    <disk type='file' device='disk'>
+      <source file='$(disk_file)'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+    </interface>
+    <input type='mouse' bus='ps2'/>
+    <graphics type='vnc' port='-1' autoport='yes'/>
+  </devices>
+</domain>";
 }

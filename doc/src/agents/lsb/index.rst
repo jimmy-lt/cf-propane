@@ -12,15 +12,21 @@
    You should have received a copy of the MIT License along with
    cf-propane. If not, see <http://opensource.org/licenses/MIT>.
 
-Agents
-======
+lsb
+===
 
-Agents are how the *cf-propane* project organizes CFEngine policies. This
-encloses the code documentation for each agent distributed within the
-project.
+`Linux Standard Base (LSB)`_ compliance management in order to find
+back common utilities between the Linux distributions. It is not the
+objective to have the whole standard installed but only a subset of
+it.
+
+.. _Linux Standard Base (LSB): http://www.linuxfoundation.org/collaborate/workgroups/lsb
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
-   lsb/index
+   *
+   promises/*
+   knowledge/*
 

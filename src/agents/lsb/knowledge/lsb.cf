@@ -1,0 +1,140 @@
+#: knowledge/lsb.cf
+#: ================
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#  Knowledge is system information that the agent may need for its own
+#  usage or may gather for exposition to other agents or policies.
+#
+#  Knowledge is gathered using a common bundle, and is calculated
+#  as soon as CFEngine loads. Despite CFEngine's internal safeguards,
+#  auto loading of the knowledge may imply some loads on the system. To
+#  prevent that the user may choose to load or not the knowledge with the
+#  agent.
+#
+#
+#: Knowledge about the running system using tools from the Linux Standard
+#: Base.
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: common cfpropane:knowledge_lsb
+#:
+#:  .. cf3:variable:: bin[lsb_release]
+#:
+#:    :type: string
+#:
+#:    Path to the ``lsb_release`` utilitie to print certain LSB and
+#:    distribution information.
+#:
+#:  .. cf3:variable:: release[codename]
+#:
+#:    :type: string
+#:
+#:    Codename according to the distribution release.
+#:
+#:  .. cf3:variable:: release[description]
+#:
+#:    :type: string
+#:
+#:    Single line text description of the distribution.
+#:
+#:  .. cf3:variable:: release[id]
+#:
+#:    :type: string
+#:
+#:    String id of the distributor.
+#:
+#:  .. cf3:variable:: release[release]
+#:
+#:    :type: string
+#:
+#:    Release number of the distribution.
+#:
+#:   Knowledge about the running system using LSB tools.
+#:
+bundle common knowledge_lsb
+{
+  vars:
+    any::
+      # LSB binaries.
+      "bin[lsb_release]"
+        string => "/usr/bin/lsb_release",
+        comment => "Path to the `lsb_release' binary",
+        handle  => "cfpropane:knowledge_lsb_vars_bin_lsb_release";
+
+      # System knowledge.
+      "release[codename]"
+        string  => execresult(
+          "$(bin[lsb_release]) --short --codename",
+          "noshell"
+        ),
+        comment => "Codename according to the distribution release",
+        handle  => "cfpropane:knowledge_lsb_vars_release_codename";
+
+      "release[description]"
+        string => execresult(
+          "$(bin[lsb_release]) --short --description",
+          "noshell"
+        ),
+        comment => "Single line text description of the distribution",
+        handle  => "cfpropane:knowledge_lsb_vars_release_description";
+
+      "release[id]"
+        string => execresult(
+          "$(bin[lsb_release]) --short --id",
+          "noshell"
+        ),
+        comment => "String id of the distributor",
+        handle  => "cfpropane:knowledge_lsb_vars_release_id";
+
+      "release[release]"
+        string => execresult(
+          "$(bin[lsb_release]) --short --release",
+          "noshell"
+        ),
+        comment => "Release number of the distribution",
+        handle  => "cfpropane:knowledge_lsb_vars_release_release";
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+

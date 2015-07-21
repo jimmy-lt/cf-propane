@@ -48,9 +48,8 @@ body common control
     bundlesequence => {};
 
     inputs => {
-      {% for input in cf3.input_files %}
-      "{{ input }}",
-      {% endfor %}
+      "agents/lsb/agent_lsb.cf",
+      "lib/3rd-party/cfengine/3.7/stdlib.cf",
     };
 
     version => "{{ project.version }}";

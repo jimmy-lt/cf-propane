@@ -48,6 +48,7 @@ body common control
     bundlesequence => {};
 
     inputs => {
+      "agents/apt/agent_apt.cf",
       "agents/lsb/agent_lsb.cf",
       "lib/3rd-party/cfengine/3.7/stdlib.cf",
     };

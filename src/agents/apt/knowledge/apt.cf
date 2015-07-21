@@ -1,0 +1,185 @@
+#: knowledge/apt.cf
+#: ================
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#  Knowledge is system information that the agent may need for its own
+#  usage or may gather for exposition to other agents or policies.
+#
+#  Knowledge is gathered using a common bundle, and is calculated as soon
+#  as CFEngine loads. Despite CFEngine's internal safeguards, auto loading
+#  of the knowledge may imply some loads on the system. To prevent that
+#  the user may choose to load or not the knowledge with the agent.
+#
+#
+#: Common knowledge about APT, the package management system.
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: common cfpropane:knowledge_apt
+#:
+#:   :classes cfpropane\:knowledge_apt_has_bin_curl:
+#:     This class is defined if the ``curl`` binary is found on the
+#:     system and is executable.
+#:
+#:   :classes cfpropane\:knowledge_apt_has_bin_wget:
+#:     This class is defined if the ``wget`` binary is found on the
+#:     system and is executable.
+#:
+#:  .. cf3:variable:: bin[apt-cache]
+#:
+#:    :type: string
+#:
+#:    Path to the ``apt-cache`` binary, APT's package cache manipulation.
+#:
+#:  .. cf3:variable:: bin[apt-get]
+#:
+#:    :type: string
+#:
+#:    Path to the ``apt-get`` binary, command line tool for packages
+#:    handling.
+#:
+#:  .. cf3:variable:: bin[apt-key]
+#:
+#:    :type: string
+#:
+#:    Path to the ``apt-key`` binary, list of keys management used to
+#:    authenticate packages.
+#:
+#:  .. cf3:variable:: path[root.d]
+#:
+#:    :type: string
+#:
+#:    Path to the ``/etc/apt``, root directory for APT's configuration.
+#:
+#:  .. cf3:variable:: path[conf.d]
+#:
+#:    :type: string
+#:
+#:    Path to the ``/etc/apt/apt.conf.d``, fragment directory for APT's
+#:    configuration.
+#:
+#:  .. cf3:variable:: path[pref.d]
+#:
+#:    :type: string
+#:
+#:    Path to the ``/etc/apt/preferences.d``, fragment directory for
+#:    APT's preferences system.
+#:
+#:  .. cf3:variable:: path[sources.d]
+#:
+#:    :type: string
+#:
+#:    Path to the ``/etc/apt/sources.list.d``, fragment directory for
+#:    APT's package sources.
+#:
+#:  .. cf3:variable:: path[sources]
+#:
+#:    :type: string
+#:
+#:    Path to the ``/etc/apt/sources.list``, main file for APT's package
+#:    sources.
+#:
+#:   Common knowledge about APT, the package management system.
+#:
+bundle common knowledge_apt
+{
+  vars:
+    any::
+      # APT binaries;
+      "bin[apt-cache]"
+        string  => "/usr/bin/apt-cache",
+        comment => "Path to the `apt-cache` program",
+        handle  => "cfpropane:knowledge_apt_vars_bin_apt_cache";
+
+      "bin[apt-get]"
+        string  => "/usr/bin/apt-get",
+        comment => "Path to the `apt-get` program",
+        handle  => "cfpropane:knowledge_apt_vars_bin_apt_get";
+
+      "bin[apt-key]"
+        string  => "/usr/bin/apt-key",
+        comment => "Path to the `apt-key` program",
+        handle  => "cfpropane:knowledge_apt_vars_bin_apt_key";
+
+      # Common paths.
+      "path[root.d]"
+        string  => "/etc/apt",
+        comment => "Root directory for APT configuration files",
+        handle  => "cfpropane:knowledge_apt_vars_path_root";
+
+      "path[conf.d]"
+        string  => "$(path[root.d])/apt.conf.d",
+        comment => "Path to APT configuration directory",
+        handle  => "cfpropane:knowledge_apt_vars_path_conf_d";
+
+      "path[pref.d]"
+        string  => "$(path[root.d])/preferences.d",
+        comment => "Path to package preferences directory",
+        handle  => "cfpropane:knowledge_apt_vars_path_preferences_d";
+
+      "path[sources.d]"
+        string  => "$(path[root.d])/sources.list.d",
+        comment => "Path to APT sources directory",
+        handle  => "cfpropane:knowledge_apt_vars_path_sources_d";
+
+      "path[sources]"
+        string  => "$(path[root.d])/sources.list",
+        comment => "Path to APT sources file",
+        handle  => "cfpropane:knowledge_apt_vars_path_sources";
+
+
+  classes:
+    any::
+      "knowledge_apt_has_bin_curl"
+        expression => isexecutable("$(paths.path[curl])"),
+        comment => "Check if the `curl' binary is present on the system",
+        handle  => "cfpropane:knowledge_apt_classes_has_bin_curl";
+
+      "knowledge_apt_has_bin_wget"
+        expression => isexecutable("$(paths.path[wget])"),
+        comment => "Check if the `wget' binary is present on the system",
+        handle  => "cfpropane:knowledge_apt_classes_has_bin_wget";
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+

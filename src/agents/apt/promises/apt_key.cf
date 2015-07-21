@@ -1,0 +1,162 @@
+#: promises/apt_key.cf
+#: ===================
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#: Management of security keys for the APT system.
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: agent cfpropane:apt_key(params)
+#:
+#:   :param params:
+#:
+#:     An array accepting the following keys:
+#:
+#:     - ``policy``, *present* or *absent*. When *present*, add
+#:       key to the APT keyring, *absent* will remove it.
+#:       Defaults to *present*.
+#:     - ``key``, the actual key content. Excludes ``key_id`` and
+#:       ``key_source``.
+#:     - ``key_id``, GPG key identifier to get it from a key server.
+#:       Excludes ``key`` and ``key_source``.
+#:     - ``key_uri``, URL leading to the actual key file. Excludes
+#:       ``key`` and ``key_id``.
+#:     - ``keyserver``, host name or IP address of the public key server
+#:       to download the key. Only valid when ``key_id`` is given.
+#:       Defaults to ``keyring.debian.org``.
+#:     - ``fetcher_opts``, options to pass to the key fetcher when an URI
+#:       is provided. By preference ``curl`` will be used. If it is not
+#:       available ``wget`` will be called.
+#:   :type params: array
+#:
+#:   Manage the list of keys within the APT keyring to authenticate
+#:   packages.
+#:
+bundle agent apt_key(params)
+{
+  defaults:
+    any::
+      "opts[policy]"    string => "present";
+      "opts[keyserver]" string => "keyring.debian.org";
+
+    knowledge_apt_has_bin_curl::
+      "opts[fetcher_opts]"
+        string => "--silent --location --max-redirs 1";
+
+    knowledge_apt_has_bin_wget.!knowledge_apt_has_bin_curl::
+      "opts[fetcher_opts]"
+        string => "--quiet --max-redirect=1 --tries=1";
+
+
+  vars:
+    # List given parameters.
+    "p_idx" slist => getindices("$(params)");
+    "opts[$(p_idx)]" string => "$($(params)[$(p_idx)])";
+
+
+  classes:
+    "has_key"     expression => reglist(@(p_idx), "key");
+    "has_key_id"  expression => reglist(@(p_idx), "key_id");
+    "has_key_uri" expression => reglist(@(p_idx), "key_uri");
+
+    "policy_absent"
+      expression => regcmp("(?i:absent)", "$(opts[policy])");
+
+    "empty_key_id"
+      expression => strcmp("", "$(opts[key_id])");
+
+    "found_key_id"
+      expression => returnszero(
+        "$(knowledge_apt.bin[apt-key]) adv --list-keys '$(opts[key_id])'",
+        "noshell"
+      );
+
+
+  commands:
+    policy_absent.has_key_id.found_key_id.!empty_key_id::
+      "$(cfpropane:knowledge_apt.bin[apt-key]) del '$(opts[key_id])'"
+        comment => "Remove key from APT keyring",
+        handle  => "cfpropane:apt_key_commands_delete";
+
+    has_key.!(has_key_id|has_key_uri).!policy_absent::
+      "$(paths.path[echo]) '$(opts[key])' | $(cfpropane:knowledge_apt.bin[apt-key]) add -"
+        contain => in_shell,
+        comment => "Add key content to the APT keyring",
+        handle  => "cfpropane:apt_key_commands_add_key";
+
+    has_key_id.!(has_key|has_key_uri).!policy_absent::
+      "$(cfpropane:knowledge_apt.bin[apt-key]) adv --keyserver=$(opts[keyserver]) --recv-keys '$(opts[key_id])'"
+        comment => "Get key from public key server",
+        handle  => "cfpropane:apt_key_commands_add_key_id";
+
+    # Key retrieval using a URI.
+    # We prefer to use curl over wget.
+    knowledge_apt_has_bin_curl.(has_key_uri.!(has_key|has_key_id).!policy_absent)::
+      "$(paths.path[curl]) $(opts[fetcher_opts]) $(opts[key_uri]) | $(cfpropane:knowledge_apt.bin[apt-key]) add -"
+        contain => in_shell,
+        comment => "Add key from remote source using `curl'",
+        handle  => "cfpropane:apt_key_commands_add_key_uri_curl";
+
+    # If curl is not available, we fail over to wget.
+    knowledge_apt_has_bin_wget.!knowledge_apt_has_bin_curl.(has_key_uri.!(has_key|has_key_id).!policy_absent)::
+      "$(paths.path[wget]) $(opts[fetcher_opts]) $(opts[key_uri]) -O - | $(cfpropane:knowledge_apt.bin[apt-key]) add -"
+        contain => in_shell,
+        comment => "Add key from remote source using `wget'",
+        handle  => "cfpropane:apt_key_commands_add_key_uri_wget";
+
+
+  reports:
+    has_key.has_key_id.has_key_uri::
+      "EE: ($(this.bundle)) only one of `key', `key_id' or `key_uri' should be given.";
+    has_key.has_key_id.!has_key_uri::
+      "EE: ($(this.bundle)) only one of `key' or `key_id' should be given.";
+    has_key.!has_key_id.has_key_uri::
+      "EE: ($(this.bundle)) only one of `key' or `key_uri' should be given.";
+    !has_key.has_key_id.has_key_uri::
+      "EE: ($(this.bundle)) only one of `key_id' or `key_uri' should be given.";
+    policy_absent.empty_key_id::
+      "WW: ($(this.bundle)) requested to delete empty `key_id'.";
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+

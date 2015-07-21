@@ -1,0 +1,130 @@
+#: promises/apt_config.cf
+#: ======================
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#: Management of the configuration of the APT system.
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: agent cfpropane:apt_config(params)
+#:
+#:   :param params:
+#:
+#:     An array accepting the following keys:
+#:
+#:     - ``name`` *(required)*, name of the configuration file.
+#:     - ``policy``, *present* or *absent*. When *present*, add content to
+#:       the APT configuration, *absent* will remove it.
+#:       Defaults to *present*.
+#:     - ``content``, the desired contents of the file. This parameter is
+#:       mutually exclusive with ``source``.
+#:     - ``source``, a source file from which to get the content for the
+#:       configuration.
+#:     - ``priority``, a two digit number to order the configuration
+#:       files. *00* being the highest priority and *99* the lowest.
+#:       Defaults to *50*.
+#:   :type params: array
+#:
+#:   Manage APT configuration files in the ``/etc/apt/apt.conf.d`` folder.
+#:
+bundle agent apt_config(params)
+{
+  defaults:
+    "opts[policy]"   string => "present";
+    "opts[priority]" string => "50";
+
+
+  vars:
+    # List given parameters.
+    "p_idx" slist => getindices("$(params)");
+    "opts[$(p_idx)]" string => "$($(params)[$(p_idx)])";
+
+      # Canonify variables for safe file namings.
+    "c_name" string => canonify("$(opts[name])");
+    "c_prio" string => canonify("$(opts[priority])");
+
+
+  classes:
+    "has_name"    expression => reglist(@(p_idx), "name");
+    "has_content" expression => reglist(@(p_idx), "content");
+    "has_source"  expression => reglist(@(p_idx), "source");
+
+    "policy_absent"
+      expression => regcmp("(?i:absent)", "$(opts[policy])");
+
+
+  files:
+    has_name.policy_absent::
+      "$(cfpropane:knowledge_apt.path[conf.d])/([\w_]+-)?$(c_name)\.conf"
+        delete  => tidy,
+        comment => "Delete configuration file",
+        handle  => "cfpropane:apt_config_files_delete";
+
+    has_name.has_content.!(has_source|policy_absent)::
+      "$(cfpropane:knowledge_apt.path[conf.d])/$(c_prio)-$(c_name).conf"
+        create        => "true",
+        perms         => system_owned("0644"),
+        edit_defaults => empty,
+        edit_line     => insert_lines("$(opts[content])"),
+        comment       => "Edit APT configuration file",
+        handle        => "cfpropane:apt_config_files_add_content";
+
+    has_name.has_source.!(has_content|policy_absent)::
+      "$(cfpropane:knowledge_apt.path[conf.d])/$(c_prio)-$(c_name).conf"
+        create        => "true",
+        perms         => system_owned("0644"),
+        edit_defaults => empty,
+        edit_line     => expand_template("$(opts[source])"),
+        comment       => "Edit APT configuration file",
+        handle        => "cfpropane:apt_config_files_add_source";
+
+
+  reports:
+    !has_name::
+      "EE: ($(this.bundle)) required `name' parameter is missing.";
+    !(has_content|has_source)|(has_content.has_source)::
+      "EE: ($(this.bundle)) either `content' or `source' should be given.";
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+

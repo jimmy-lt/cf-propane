@@ -1,0 +1,160 @@
+#: promises/apt.cf
+#: ===============
+#:
+# 8< ------------------------------------------------------------------ >8
+#
+#  Copying
+#  -------
+#
+#  Copyright (c) 2015 cf-propane authors and contributors.
+#
+#  This file is part of the *cf-propane* project.
+#
+#  cf-propane is a free software project. You can redistribute it and/or
+#  modify if under the terms of the MIT License.
+#
+#  This software project is distributed *as is*, WITHOUT WARRANTY OF ANY
+#  KIND; including but not limited to the WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE and NONINFRINGEMENT.
+#
+#  You should have received a copy of the MIT License along with
+#  cf-propane. If not, see <http://opensource.org/licenses/MIT>.
+#
+# 8< ------------------------------------------------------------------ >8
+#
+#
+#: Agent for Debian's Advance Package Tool, a package management system.
+#:
+
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: agent cfpropane:apt
+#:
+#:   :classes cfpropane_apt_source_get_deb_src:
+#:     If defined, source packages will also be retreived from the APT
+#:     sources.
+#:
+#:   :classes cfpropane\:apt_source_get_deb_src:
+#:     If defined, source packages will also be retreived from the APT
+#:     sources.
+#:
+#:   :classes cfpropane_apt_source_use_backports:
+#:     If defined, add a source for back-ported Debian packages.
+#:
+#:   :classes cfpropane\:apt_source_use_backports:
+#:     If defined, add a source for back-ported Debian packages.
+#:
+#:   Agent for Debian's Advance Package Tool, a package management system.
+#:
+bundle agent apt
+{
+  vars:
+    any::
+      # Main sources configuration.
+      "sources[uri]"
+        string => "http://httpredir.debian.org/debian";
+      "sources[components]"
+        string => "main";
+
+
+      # Utilities for promise's internals.
+      "path_idx"
+        slist   => getindices("cfpropane:knowledge_apt.path"),
+        comment => "Get index list of defined paths for the APT system",
+        handle  => "cfpropane:apt_vars_path_idx";
+
+      "c_path_idx[$(path_idx)]"
+        string  => canonify("$(path_idx)"),
+        comment => "Secure path indexes for class definition",
+        handle  => "cfpropane:apt_vars_c_path_idx";
+
+
+      # Packages which will be installed on the system.
+      "package"
+        slist => {
+          "apt",
+          "apt-utils",
+          "dpkg",
+          "debian-keyring",
+        },
+        comment => "Package list for an APT installation",
+        handle  => "cfpropane:apt_vars_package";
+
+
+    cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports::
+      # Debian backports sources.
+      "backports[policy]"      string => "present";
+      "backports[name]"        string => "debian-backports";
+      "backports[uri]"         string => "$(sources[uri])";
+      "backports[release]"     string => "$(cfpropane:knowledge_lsb.release[codename])-backports";
+      "backports[components]"  string => "$(sources[components]";
+      "backports[description]" string => "Backported packages to Debian stable.";
+
+    (cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports).(cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src)::
+      "backports[deb_src]"     string => "true";
+
+
+  classes:
+    "is_dir_idx_$(c_path_idx[$(path_idx)])"
+      expression => regcmp("^[\w\.-]+\.d$", "$(path_idx)"),
+      comment    => "Check if the path's index name represents a directory",
+      handle     => "cfpropane:apt_classes_is_dir_idx";
+
+
+  methods:
+    cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports::
+      "backports"
+        usebundle => cfpropane:apt_source(
+          "$(this.namespace):$(this.bundle).backports"
+        );
+
+
+  packages:
+    any::
+      "$(package)"
+        policy  => "present",
+        version => "latest",
+        comment => "Install APT packages",
+        handle  => "cfpropane:apt_packages_install";
+
+
+  files:
+    any::
+      "$(cfpropane:knowledge_apt.path[$(path_idx)])/."
+        create     => "true",
+        perms      => system_owned("0755"),
+        comment    => "Create APT directories",
+        handle     => "cfpropane:apt_files_apt_dir",
+        ifvarclass => "is_dir_idx_$(c_path_idx[$(path_idx)])";
+
+      "$(cfpropane:knowledge_apt.path[sources])"
+        create        => "true",
+        perms         => system_owned("0644"),
+        edit_defaults => empty,
+        edit_template => translatepath(
+          "$(cfpropane:agent_apt.path[templates.d])/sources.list"
+        ),
+        comment       => "Edit the main package sources file",
+        handle        => "cfpropane:apt_files_apt_sources";
+}
+
+
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+

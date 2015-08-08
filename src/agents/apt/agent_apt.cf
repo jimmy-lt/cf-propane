@@ -35,6 +35,26 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Define agent's policy files to be loaded by CFEngine and set the
+#:   content of this file in the
+#:   :cf3:ns:`cfpropane` namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+  inputs => { @(cfpropane:agent_apt.inputs) };
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -138,25 +158,5 @@ bundle common agent_apt
         },
         comment => "List of promise files bundled with the apt agent",
         handle  => "cfpropane:agent_apt_vars_inputs";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Define agent's policy files to be loaded by CFEngine and set the
-#:   content of this file in the
-#:   :cf3:ns:`cfpropane` namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
-  inputs => { @(agent_apt.inputs) };
 }
 

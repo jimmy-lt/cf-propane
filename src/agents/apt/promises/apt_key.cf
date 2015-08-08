@@ -27,6 +27,24 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -140,23 +158,5 @@ bundle agent apt_key(params)
       "EE: ($(this.bundle)) only one of `key_id' or `key_uri' should be given.";
     policy_absent.empty_key_id::
       "WW: ($(this.bundle)) requested to delete empty `key_id'.";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Set the content of this file in the :cf3:ns:`cfpropane`
-#:   namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
 }
 

@@ -38,6 +38,24 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -118,23 +136,5 @@ bundle common knowledge_lsb
         ),
         comment => "Release number of the distribution",
         handle  => "cfpropane:knowledge_lsb_vars_release_release";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Set the content of this file in the :cf3:ns:`cfpropane`
-#:   namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
 }
 

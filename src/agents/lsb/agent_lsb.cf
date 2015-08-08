@@ -35,6 +35,26 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Define agent's policy files to be loaded by CFEngine and set the
+#:   content of this file in the
+#:   :cf3:ns:`cfpropane` namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+  inputs => { @(cfpropane:agent_lsb.inputs) };
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -132,25 +152,5 @@ bundle common agent_lsb
         },
         comment => "List of promise files bundled with the lsb agent",
         handle  => "cfpropane:agent_lsb_vars_inputs";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Define agent's policy files to be loaded by CFEngine and set the
-#:   content of this file in the
-#:   :cf3:ns:`cfpropane` namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
-  inputs => { @(agent_lsb.inputs) };
 }
 

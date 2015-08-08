@@ -16,6 +16,32 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+{% if agent.namespace %}
+#:   Define agent's policy files to be loaded by CFEngine and set the
+#:   content of this file in the
+#:   :cf3:ns:`{{ agent.namespace }}` namespace.
+{% else %}
+#:   Define agent's policy files to be loaded by CFEngine.
+{% endif %}
+#:
+body file control
+{
+{% if agent.namespace %}
+  namespace => "{{ agent.namespace }}";
+{% endif %}
+  inputs => { @({% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}.inputs) };
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -97,31 +123,5 @@ bundle common agent_{{ agent.name }}
         },
         comment => "List of promise files bundled with the {{ agent.name }} agent",
         handle  => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}_vars_inputs";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-{% if agent.namespace %}
-#:   Define agent's policy files to be loaded by CFEngine and set the
-#:   content of this file in the
-#:   :cf3:ns:`{{ agent.namespace }}` namespace.
-{% else %}
-#:   Define agent's policy files to be loaded by CFEngine.
-{% endif %}
-#:
-body file control
-{
-{% if agent.namespace %}
-  namespace => "{{ agent.namespace }}";
-{% endif %}
-  inputs => { @(agent_{{ agent.name }}.inputs) };
 }
 

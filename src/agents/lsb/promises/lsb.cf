@@ -32,6 +32,24 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -84,23 +102,5 @@ bundle agent lsb
         policy  => "absent",
         comment => "Remove packages from the `lsb' agent",
         handle  => "cfpropane:lsb_packages_uninstall";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Set the content of this file in the :cf3:ns:`cfpropane`
-#:   namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
 }
 

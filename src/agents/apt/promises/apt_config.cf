@@ -27,6 +27,24 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -108,23 +126,5 @@ bundle agent apt_config(params)
       "EE: ($(this.bundle)) required `name' parameter is missing.";
     !(has_content|has_source)|(has_content.has_source)::
       "EE: ($(this.bundle)) either `content' or `source' should be given.";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Set the content of this file in the :cf3:ns:`cfpropane`
-#:   namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
 }
 

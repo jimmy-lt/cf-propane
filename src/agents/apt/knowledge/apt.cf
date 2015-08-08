@@ -36,6 +36,24 @@
 #:
 
 #:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`cfpropane`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "cfpropane";
+}
+
+
+#:
 #: Bundles
 #: -------
 #:
@@ -163,23 +181,5 @@ bundle common knowledge_apt
         expression => isexecutable("$(paths.path[wget])"),
         comment => "Check if the `wget' binary is present on the system",
         handle  => "cfpropane:knowledge_apt_classes_has_bin_wget";
-}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Set the content of this file in the :cf3:ns:`cfpropane`
-#:   namespace.
-#:
-body file control
-{
-  namespace => "cfpropane";
 }
 

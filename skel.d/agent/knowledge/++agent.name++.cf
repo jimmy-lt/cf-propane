@@ -15,6 +15,26 @@
 #: < FILE CONTENT DESCRIPTION HERE >
 #:
 
+{% if agent.namespace %}
+#:
+#: Bodies
+#: ------
+#:
+#: file
+#: ^^^^
+#:
+#: .. cf3:body:: file control
+#:
+#:   Set the content of this file in the :cf3:ns:`{{ agent.namespace }}`
+#:   namespace.
+#:
+body file control
+{
+  namespace => "{{ agent.namespace }}";
+}
+
+
+{% endif %}
 #:
 #: Bundles
 #: -------
@@ -51,24 +71,4 @@ bundle common knowledge_{{ agent.name }}
         comment    => "Make sure the ``bar`` program is in the system",
         handle     => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}knowledge_{{ agent.name }}_classes_have_bar";
 }
-{% if agent.namespace %}
-
-
-#:
-#: Bodies
-#: ------
-#:
-#: file
-#: ^^^^
-#:
-#: .. cf3:body:: file control
-#:
-#:   Set the content of this file in the :cf3:ns:`{{ agent.namespace }}`
-#:   namespace.
-#:
-body file control
-{
-  namespace => "{{ agent.namespace }}";
-}
-{% endif %}
 

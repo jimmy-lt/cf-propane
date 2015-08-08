@@ -5,23 +5,7 @@
 #: < FILE CONTENT DESCRIPTION HERE >
 #:
 
-#:
-#: Bundles
-#: -------
-#:
-#: .. cf3:bundle:: agent {% if agent.namespace %}{{ agent.namespace }}:{% endif %}{{ agent.name }}
-#:
-#:   < AGENT DESCRIPTION HERE >
-#:
-bundle agent {{ agent.name }}
-{
-  vars:
-    any::
-      "foo" string => "bar";
-}
 {% if agent.namespace %}
-
-
 #:
 #: Bodies
 #: ------
@@ -38,5 +22,21 @@ body file control
 {
   namespace => "{{ agent.namespace }}";
 }
+
+
 {% endif %}
+#:
+#: Bundles
+#: -------
+#:
+#: .. cf3:bundle:: agent {% if agent.namespace %}{{ agent.namespace }}:{% endif %}{{ agent.name }}
+#:
+#:   < AGENT DESCRIPTION HERE >
+#:
+bundle agent {{ agent.name }}
+{
+  vars:
+    any::
+      "foo" string => "bar";
+}
 

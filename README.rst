@@ -1,3 +1,7 @@
+.. image:: https://readthedocs.org/projects/cf-propane/badge/?version=latest
+  :target: https://readthedocs.org/projects/cf-propane/?badge=latest
+  :alt: Documentation Status
+
 cf-propane
 ==========
 

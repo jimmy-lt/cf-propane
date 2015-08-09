@@ -60,8 +60,8 @@ body file control
 #:   An array accepting the following keys:
 #:
 #:   - ``policy`` *(required)*, ``present`` or ``absent``. When
-#:   ``present``, install the LSB packages on the system. ``absent`` will
-#:   remove them.
+#:     ``present``, install the LSB packages on the system. ``absent``
+#:     will remove them.
 #:
 #:   Install a subset of the Linux Standard Base utilities that are proven
 #:   to be of need when to get information about the running system.

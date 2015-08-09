@@ -60,7 +60,7 @@ body file control
 #:
 #: .. cf3:bundle:: common cfpropane:agent_lsb
 #:
-#:   :classes cfpropane_agent_lsb_disable_knowledge:
+#:   :classes default\:cfpropane_agent_lsb_disable_knowledge:
 #:     Disable loading of this agent's knowledge if defined.
 #:
 #:   :classes cfpropane\:agent_lsb_disable_knowledge:
@@ -132,7 +132,7 @@ bundle common agent_lsb
         handle  => "cfpropane:agent_lsb_vars_path_knowledge_d";
 
 
-    !cfpropane_agent_lsb_disable_knowledge.!cfpropane:agent_lsb_disable_knowledge::
+    !default:cfpropane_agent_lsb_disable_knowledge.!cfpropane:agent_lsb_disable_knowledge::
       # Files listed here will be loaded by CFEngine when loading this
       # agent.
       "inputs"
@@ -143,7 +143,7 @@ bundle common agent_lsb
         comment => "List of promise files bundled with the lsb agent",
         handle  => "cfpropane:agent_lsb_vars_inputs_disable_knowledge";
 
-    cfpropane_agent_lsb_disable_knowledge|cfpropane:agent_lsb_disable_knowledge::
+    default:cfpropane_agent_lsb_disable_knowledge|cfpropane:agent_lsb_disable_knowledge::
       # Files listed here will be loaded by CFEngine when loading this
       # agent.
       "inputs"

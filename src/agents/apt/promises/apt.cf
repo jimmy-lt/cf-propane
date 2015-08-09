@@ -50,7 +50,7 @@ body file control
 #:
 #: .. cf3:bundle:: agent cfpropane:apt
 #:
-#:   :classes cfpropane_apt_source_get_deb_src:
+#:   :classes default\:cfpropane_apt_source_get_deb_src:
 #:     If defined, source packages will also be retreived from the APT
 #:     sources.
 #:
@@ -58,7 +58,7 @@ body file control
 #:     If defined, source packages will also be retreived from the APT
 #:     sources.
 #:
-#:   :classes cfpropane_apt_source_use_backports:
+#:   :classes default\:cfpropane_apt_source_use_backports:
 #:     If defined, add a source for back-ported Debian packages.
 #:
 #:   :classes cfpropane\:apt_source_use_backports:
@@ -101,7 +101,7 @@ bundle agent apt
         handle  => "cfpropane:apt_vars_package";
 
 
-    cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports::
+    default:cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports::
       # Debian backports sources.
       "backports[policy]"      string => "present";
       "backports[name]"        string => "debian-backports";
@@ -110,7 +110,7 @@ bundle agent apt
       "backports[components]"  string => "$(sources[components]";
       "backports[description]" string => "Backported packages to Debian stable.";
 
-    (cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports).(cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src)::
+    (default:cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports).(default:cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src)::
       "backports[deb_src]"     string => "true";
 
 
@@ -122,7 +122,7 @@ bundle agent apt
 
 
   methods:
-    cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports::
+    default:cfpropane_apt_source_use_backports|cfpropane:apt_source_use_backports::
       "backports"
         usebundle => cfpropane:apt_source(
           "$(this.namespace):$(this.bundle).backports"
@@ -142,15 +142,15 @@ bundle agent apt
     any::
       "$(cfpropane:knowledge_apt.path[$(path_idx)])/."
         create     => "true",
-        perms      => system_owned("0755"),
+        perms      => default:system_owned("0755"),
         comment    => "Create APT directories",
         handle     => "cfpropane:apt_files_apt_dir",
         ifvarclass => "is_dir_idx_$(c_path_idx[$(path_idx)])";
 
       "$(cfpropane:knowledge_apt.path[sources])"
         create        => "true",
-        perms         => system_owned("0644"),
-        edit_defaults => empty,
+        perms         => default:system_owned("0644"),
+        edit_defaults => default:empty,
         edit_template => translatepath(
           "$(cfpropane:agent_apt.path[templates.d])/sources.list"
         ),

@@ -60,7 +60,7 @@ body file control
 #:
 #: .. cf3:bundle:: common cfpropane:agent_apt
 #:
-#:   :classes cfpropane_agent_apt_disable_knowledge:
+#:   :classes default\:cfpropane_agent_apt_disable_knowledge:
 #:     Disable loading of this agent's knowledge if defined.
 #:
 #:   :classes cfpropane\:agent_apt_disable_knowledge:
@@ -132,7 +132,7 @@ bundle common agent_apt
         handle  => "cfpropane:agent_apt_vars_path_promises_d";
 
 
-    !cfpropane_agent_apt_disable_knowledge.!cfpropane:agent_apt_disable_knowledge::
+    !default:cfpropane_agent_apt_disable_knowledge.!cfpropane:agent_apt_disable_knowledge::
       # Files listed here will be loaded by CFEngine when loading this
       # agent.
       "inputs"
@@ -146,7 +146,7 @@ bundle common agent_apt
         comment => "List of promise files bundled with the apt agent",
         handle  => "cfpropane:agent_apt_vars_inputs_disable_knowledge";
 
-    cfpropane_agent_apt_disable_knowledge|cfpropane:agent_apt_disable_knowledge::
+    default:cfpropane_agent_apt_disable_knowledge|cfpropane:agent_apt_disable_knowledge::
       # Files listed here will be loaded by CFEngine when loading this
       # agent.
       "inputs"

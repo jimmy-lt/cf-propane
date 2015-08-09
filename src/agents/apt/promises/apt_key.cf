@@ -122,7 +122,7 @@ bundle agent apt_key(params)
 
     has_key.!(has_key_id|has_key_uri).!policy_absent::
       "$(paths.path[echo]) '$(opts[key])' | $(cfpropane:knowledge_apt.bin[apt-key]) add -"
-        contain => in_shell,
+        contain => default:in_shell,
         comment => "Add key content to the APT keyring",
         handle  => "cfpropane:apt_key_commands_add_key";
 
@@ -135,14 +135,14 @@ bundle agent apt_key(params)
     # We prefer to use curl over wget.
     knowledge_apt_has_bin_curl.(has_key_uri.!(has_key|has_key_id).!policy_absent)::
       "$(paths.path[curl]) $(opts[fetcher_opts]) $(opts[key_uri]) | $(cfpropane:knowledge_apt.bin[apt-key]) add -"
-        contain => in_shell,
+        contain => default:in_shell,
         comment => "Add key from remote source using `curl'",
         handle  => "cfpropane:apt_key_commands_add_key_uri_curl";
 
     # If curl is not available, we fail over to wget.
     knowledge_apt_has_bin_wget.!knowledge_apt_has_bin_curl.(has_key_uri.!(has_key|has_key_id).!policy_absent)::
       "$(paths.path[wget]) $(opts[fetcher_opts]) $(opts[key_uri]) -O - | $(cfpropane:knowledge_apt.bin[apt-key]) add -"
-        contain => in_shell,
+        contain => default:in_shell,
         comment => "Add key from remote source using `wget'",
         handle  => "cfpropane:apt_key_commands_add_key_uri_wget";
 

@@ -98,25 +98,25 @@ bundle agent apt_config(params)
   files:
     has_name.policy_absent::
       "$(cfpropane:knowledge_apt.path[conf.d])/([\w_]+-)?$(c_name)\.conf"
-        delete  => tidy,
+        delete  => default:tidy,
         comment => "Delete configuration file",
         handle  => "cfpropane:apt_config_files_delete";
 
     has_name.has_content.!(has_source|policy_absent)::
       "$(cfpropane:knowledge_apt.path[conf.d])/$(c_prio)-$(c_name).conf"
         create        => "true",
-        perms         => system_owned("0644"),
-        edit_defaults => empty,
-        edit_line     => insert_lines("$(opts[content])"),
+        perms         => default:system_owned("0644"),
+        edit_defaults => default:empty,
+        edit_line     => default:insert_lines("$(opts[content])"),
         comment       => "Edit APT configuration file",
         handle        => "cfpropane:apt_config_files_add_content";
 
     has_name.has_source.!(has_content|policy_absent)::
       "$(cfpropane:knowledge_apt.path[conf.d])/$(c_prio)-$(c_name).conf"
         create        => "true",
-        perms         => system_owned("0644"),
-        edit_defaults => empty,
-        edit_line     => expand_template("$(opts[source])"),
+        perms         => default:system_owned("0644"),
+        edit_defaults => default:empty,
+        edit_line     => default:expand_template("$(opts[source])"),
         comment       => "Edit APT configuration file",
         handle        => "cfpropane:apt_config_files_add_source";
 

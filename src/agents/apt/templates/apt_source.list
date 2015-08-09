@@ -5,8 +5,8 @@
 deb [arch=$(cfpropane:apt_source.opts[arch])] $(cfpropane:apt_source.opts[uri]) $(cfpropane:apt_source.opts[release]) $(cfpropane:apt_source.opts[components])
 [%CFEngine !has_arch:: %]
 deb $(cfpropane:apt_source.opts[uri]) $(cfpropane:apt_source.opts[release]) $(cfpropane:apt_source.opts[components])
-[%CFEngine has_arch.(has_deb_src|cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src):: %]
+[%CFEngine has_arch.(has_deb_src|default:cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src):: %]
 deb-src [arch=$(cfpropane:apt_source.opts[arch])] $(cfpropane:apt_source.opts[uri]) $(cfpropane:apt_source.opts[release]) $(cfpropane:apt_source.opts[components])
-[%CFEngine !has_arch.(has_deb_src|cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src):: %]
+[%CFEngine !has_arch.(has_deb_src|default:cfpropane_apt_source_get_deb_src|cfpropane:apt_source_get_deb_src):: %]
 deb-src $(cfpropane:apt_source.opts[uri]) $(cfpropane:apt_source.opts[release]) $(cfpropane:apt_source.opts[components])
 

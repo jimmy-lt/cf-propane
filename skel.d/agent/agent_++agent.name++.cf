@@ -49,7 +49,7 @@ body file control
 #:
 {% if agent.has_knowledge %}
   {% if agent.namespace %}
-#:   :classes {{ agent.namespace }}_agent_{{ agent.name }}_disable_knowledge:
+#:   :classes default\:{{ agent.namespace }}_agent_{{ agent.name }}_disable_knowledge:
 #:     Disable loading of this agent's knowledge if defined.
 #:
 #:   :classes {{ agent.namespace }}\:agent_{{ agent.name }}_disable_knowledge:
@@ -96,7 +96,7 @@ bundle common agent_{{ agent.name }}
 
       {% endfor %}
     {% if agent.has_knowledge %}
-    !{% if agent.namespace %}{{ agent.namespace }}_{% endif %}agent_{{ agent.name }}_disable_knowledge{% if agent.namespace %}.!{{ agent.namespace }}:agent_{{ agent.name }}_disable_knowledge{% endif %}::
+    !{% if agent.namespace %}default:{{ agent.namespace }}_{% endif %}agent_{{ agent.name }}_disable_knowledge{% if agent.namespace %}.!{{ agent.namespace }}:agent_{{ agent.name }}_disable_knowledge{% endif %}::
       # Files listed here will be loaded by CFEngine when loading this
       # agent.
       "inputs"
@@ -111,7 +111,7 @@ bundle common agent_{{ agent.name }}
         comment => "List of promise files bundled with the {{ agent.name }} agent",
         handle  => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}agent_{{ agent.name }}_vars_inputs_no_knowledge";
 
-    {%+ if agent.namespace %}{{ agent.namespace }}_{% endif %}agent_{{ agent.name }}_disable_knowledge{% if agent.namespace %}|{{ agent.namespace }}:agent_{{ agent.name }}_disable_knowledge{% endif %}::
+    {%+ if agent.namespace %}default:{{ agent.namespace }}_{% endif %}agent_{{ agent.name }}_disable_knowledge{% if agent.namespace %}|{{ agent.namespace }}:agent_{{ agent.name }}_disable_knowledge{% endif %}::
     {% endif %}
       # Files listed here will be loaded by CFEngine when loading this
       # agent.

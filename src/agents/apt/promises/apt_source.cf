@@ -50,7 +50,7 @@ body file control
 #:
 #: .. cf3:bundle:: agent cfpropane:apt_source(params)
 #:
-#:   :classes cfpropane_apt_source_get_deb_src:
+#:   :classes default\:cfpropane_apt_source_get_deb_src:
 #:     If defined, source packages will also be retreived from the APT
 #:     sources.
 #:
@@ -117,15 +117,15 @@ bundle agent apt_source(params)
   files:
     has_name.policy_absent::
       "$(cfpropane:knowledge_apt.path[sources.d])/$(c_name)(-[\w_]+)?\.list"
-        delete  => tidy,
+        delete  => default:tidy,
         comment => "Delete repository file",
         handle  => "cfpropane:apt_source_files_delete";
 
     has_name.has_uri.(has_arch.!policy_absent)::
       "$(cfpropane:knowledge_apt.path[sources.d])/$(c_name)-$(c_arch).list"
         create        => "true",
-        perms         => system_owned("0644"),
-        edit_defaults => empty,
+        perms         => default:system_owned("0644"),
+        edit_defaults => default:empty,
         edit_template => translatepath(
           "$(cfpropane:agent_apt.path[templates.d])/apt_source.list"
         ),
@@ -135,8 +135,8 @@ bundle agent apt_source(params)
     has_name.has_uri.!(has_arch|policy_absent)::
       "$(cfpropane:knowledge_apt.path[sources_d])/$(c_name).list"
         create        => "true",
-        perms         => system_owned("0644"),
-        edit_defaults => empty,
+        perms         => default:system_owned("0644"),
+        edit_defaults => default:empty,
         edit_template => translatepath(
           "$(cfpropane:agent_apt.path[templates.d])/apt_source.list"
         ),

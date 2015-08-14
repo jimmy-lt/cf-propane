@@ -137,11 +137,11 @@ bundle common agent_apt
       # agent.
       "inputs"
         slist => {
+          translatepath("$(this.path[knowledge.d])/apt.cf"),
           translatepath("$(this.path[promises.d])/apt.cf"),
           translatepath("$(this.path[promises.d])/apt_config.cf"),
           translatepath("$(this.path[promises.d])/apt_key.cf"),
           translatepath("$(this.path[promises.d])/apt_source.cf"),
-          translatepath("$(this.path[knowledge.d])/apt.cf"),
         },
         comment => "List of promise files bundled with the apt agent",
         handle  => "cfpropane:agent_apt_vars_inputs_disable_knowledge";

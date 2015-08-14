@@ -101,11 +101,11 @@ bundle common agent_{{ agent.name }}
       # agent.
       "inputs"
         slist => {
-          {% for f in agent.files.promises %}
-          translatepath("$(this.path[promises.d])/{{ f }}"),
-          {% endfor %}
           {% for f in agent.files.knowledge %}
           translatepath("$(this.path[knowledge.d])/{{ f }}"),
+          {% endfor %}
+          {% for f in agent.files.promises %}
+          translatepath("$(this.path[promises.d])/{{ f }}"),
           {% endfor %}
         },
         comment => "List of promise files bundled with the {{ agent.name }} agent",

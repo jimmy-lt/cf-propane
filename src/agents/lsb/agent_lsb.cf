@@ -137,8 +137,8 @@ bundle common agent_lsb
       # agent.
       "inputs"
         slist => {
-          translatepath("$(this.path[promises.d])/lsb.cf"),
           translatepath("$(this.path[knowledge.d])/lsb.cf"),
+          translatepath("$(this.path[promises.d])/lsb.cf"),
         },
         comment => "List of promise files bundled with the lsb agent",
         handle  => "cfpropane:agent_lsb_vars_inputs_disable_knowledge";

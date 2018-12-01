@@ -152,6 +152,7 @@ List of licensing exceptions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - lib/3rd-party/cfengine/3.7
+- lib/3rd-party/cfengine/3.12
 
 
 List of Contributors

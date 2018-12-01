@@ -1,35 +1,12 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
+# .gitignore
+# ==========
 
-# Distribution / packaging
-.Python
-pyenv/
-build/
-dist/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-
-# Translations
-*.mo
-*.pot
+# Editors
+# -------
 
 # Emacs
+# ^^^^^
+
 *~
 \#*\#
 /.emacs.desktop
@@ -39,30 +16,32 @@ auto-save-list
 tramp
 .\#*
 
-# Org-mode
+# Org mode.
 .org-id-locations
 *_archive
 
-# flymake-mode
+# Flymake mode.
 *_flymake.*
 
-# eshell files
+# Eshell files.
 /eshell/history
 /eshell/lastdir
 
-# elpa packages
+# ELPA packages.
 /elpa/
 
-# reftex files
+# Reftex files.
 *.rel
 
-# AUCTeX auto folder
+# AUCTeX auto folder.
 /auto/
 
-# cask packages
+# Cask packages.
 .cask/
 
+
 # JetBrains
+# ^^^^^^^^^
 
 *.iml
 .idea/
@@ -70,24 +49,30 @@ tramp
 *.iws
 
 # Kate
+# ^^^^
+
 .*.kate-swp
 .swp.*
 
-# SublimeText
 
-# cache files for sublime text
+# SublimeText
+# ^^^^^^^^^^^
+
+# Cache files for sublime text.
 *.tmlanguage.cache
 *.tmPreferences.cache
 *.stTheme.cache
 
-# workspace files are user-specific
+# Workspace files are user-specific.
 *.sublime-workspace
 *.sublime-project
 
-# sftp configuration file
+# SFTP configuration file.
 sftp-config.json
 
+
 # Vim
+# ^^^
 
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
@@ -95,7 +80,9 @@ sftp-config.json
 Session.vim
 .netrwhist
 
+
 # Xcode
+# ^^^^^
 
 *.pbxuser
 !default.pbxuser
@@ -111,29 +98,80 @@ xcuserdata
 DerivedData
 *.xcuserstate
 
+
+# Python
+# ------
+
+
+# Byte-compiled / optimized / DLL files
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+__pycache__/
+*.py[cod]
+
+
+# Distribution / packaging
+# ^^^^^^^^^^^^^^^^^^^^^^^^
+
+.Python
+pyenv/
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+
+# Installer logs
+# ^^^^^^^^^^^^^^
+
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# Unit test / coverage reports
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+
+# Translations
+# ^^^^^^^^^^^^
+
+*.mo
+*.pot
+
+
+# Systems
+# -------
+
+
 # Linux
+# ^^^^^
 
-*~
-
-# KDE directory preferences
+.Trash-*
 .directory
 
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
 
-# MacOS X
+# MacOS
+# ^^^^^
+
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# Icon must end with two \r
 Icon
 
-
-# Thumbnails
+# Thumbnails.
 ._*
 
-# Files that might appear in the root of a volume
+# Files that might appear in the root of a volume.
 .DocumentRevisions-V100
 .fseventsd
 .Spotlight-V100
@@ -141,31 +179,35 @@ Icon
 .Trashes
 .VolumeIcon.icns
 
-# Directories potentially created on remote AFP share
+# Directories potentially created on remote AFP share.
 .AppleDB
 .AppleDesktop
 Network Trash Folder
 Temporary Items
 .apdisk
 
-# Windows
 
-# Windows image file caches
+# Windows
+# ^^^^^^^
+
+# Windows image file caches.
 Thumbs.db
 ehthumbs.db
 
-# Folder config file
+# Folder config file.
 Desktop.ini
 
-# Recycle Bin used on file shares
+# Recycle Bin used on file shares.
 $RECYCLE.BIN/
 
-# Windows Installer files
+# Windows Installer files.
 *.cab
 *.msi
 *.msm
 *.msp
 
-# Windows shortcuts
+# Windows shortcuts.
 *.lnk
 
+# Backup files.
+*.bak

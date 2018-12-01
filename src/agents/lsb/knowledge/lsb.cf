@@ -137,4 +137,3 @@ bundle common knowledge_lsb
         comment => "Release number of the distribution",
         handle  => "cfpropane:knowledge_lsb_vars_release_release";
 }
-

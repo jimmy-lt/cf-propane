@@ -811,4 +811,3 @@ body perms cfpropane_failsafe_system_owned(mode)
   groups => { "root" };
   rxdirs => "true";
 }
-

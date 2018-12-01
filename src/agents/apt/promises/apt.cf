@@ -157,4 +157,3 @@ bundle agent apt
         comment       => "Edit the main package sources file",
         handle        => "cfpropane:apt_files_apt_sources";
 }
-

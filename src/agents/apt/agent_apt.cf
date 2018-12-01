@@ -159,4 +159,3 @@ bundle common agent_apt
         comment => "List of promise files bundled with the apt agent",
         handle  => "cfpropane:agent_apt_vars_inputs";
 }
-

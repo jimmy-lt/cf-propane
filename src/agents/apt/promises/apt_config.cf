@@ -127,4 +127,3 @@ bundle agent apt_config(params)
     !(has_content|has_source)|(has_content.has_source)::
       "EE: ($(this.bundle)) either `content' or `source' should be given.";
 }
-

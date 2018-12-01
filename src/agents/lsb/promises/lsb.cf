@@ -103,4 +103,3 @@ bundle agent lsb
         comment => "Remove packages from the `lsb' agent",
         handle  => "cfpropane:lsb_packages_uninstall";
 }
-

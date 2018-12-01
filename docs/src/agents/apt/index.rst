@@ -12,16 +12,15 @@
    You should have received a copy of the MIT License along with
    cf-propane. If not, see <http://opensource.org/licenses/MIT>.
 
-Agents
-======
+apt
+===
 
-Agents are how the *cf-propane* project organizes CFEngine policies. This
-encloses the code documentation for each agent distributed within the
-project.
+Agent for Debian's Advance Package Tool, a package management system.
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
-   apt/index
-   lsb/index
-
+   *
+   promises/*
+   knowledge/*

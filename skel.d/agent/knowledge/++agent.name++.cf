@@ -71,4 +71,3 @@ bundle common knowledge_{{ agent.name }}
         comment    => "Make sure the ``bar`` program is in the system",
         handle     => "{% if agent.namespace %}{{ agent.namespace }}:{% endif %}knowledge_{{ agent.name }}_classes_have_bar";
 }
-

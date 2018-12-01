@@ -39,4 +39,3 @@ bundle agent {{ agent.name }}
     any::
       "foo" string => "bar";
 }
-

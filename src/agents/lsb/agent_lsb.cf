@@ -153,4 +153,3 @@ bundle common agent_lsb
         comment => "List of promise files bundled with the lsb agent",
         handle  => "cfpropane:agent_lsb_vars_inputs";
 }
-

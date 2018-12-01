@@ -12,10 +12,15 @@
    You should have received a copy of the MIT License along with
    cf-propane. If not, see <http://opensource.org/licenses/MIT>.
 
-apt
+lsb
 ===
 
-Agent for Debian's Advance Package Tool, a package management system.
+`Linux Standard Base (LSB)`_ compliance management in order to find
+back common utilities between the Linux distributions. It is not the
+objective to have the whole standard installed but only a subset of
+it.
+
+.. _Linux Standard Base (LSB): http://www.linuxfoundation.org/collaborate/workgroups/lsb
 
 .. toctree::
    :maxdepth: 2
@@ -24,4 +29,3 @@ Agent for Debian's Advance Package Tool, a package management system.
    *
    promises/*
    knowledge/*
-

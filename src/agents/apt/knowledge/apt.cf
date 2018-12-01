@@ -182,4 +182,3 @@ bundle common knowledge_apt
         comment => "Check if the `wget' binary is present on the system",
         handle  => "cfpropane:knowledge_apt_classes_has_bin_wget";
 }
-

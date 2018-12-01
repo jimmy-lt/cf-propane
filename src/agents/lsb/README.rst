@@ -105,4 +105,3 @@ Examples
     reports:
       "$(cfpropane:knowledge_lsb.release[id]) $(cfpropane:knowledge_lsb.release[codename])";
   }
-

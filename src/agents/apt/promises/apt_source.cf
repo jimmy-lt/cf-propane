@@ -150,4 +150,3 @@ bundle agent apt_source(params)
     !has_uri::
       "EE: ($(this.bundle)) required `uri' parameter is missing.";
 }
-

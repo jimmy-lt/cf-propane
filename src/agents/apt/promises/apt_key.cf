@@ -159,4 +159,3 @@ bundle agent apt_key(params)
     policy_absent.empty_key_id::
       "WW: ($(this.bundle)) requested to delete empty `key_id'.";
 }
-

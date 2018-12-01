@@ -1,5 +1,5 @@
-# env.conf.d/dev.conf
-# ===================
+# env.d/dev.yaml
+# ==============
 #
 # Environment file for project's development.
 #
@@ -24,4 +24,3 @@
 
 # The following is to feed the context for the Jinja2 template.
 variables:
-

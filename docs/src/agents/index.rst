@@ -12,16 +12,15 @@
    You should have received a copy of the MIT License along with
    cf-propane. If not, see <http://opensource.org/licenses/MIT>.
 
-Source Code Reference
-=====================
+Agents
+======
 
-This reference manual describes the content of each file part of
-*cf-propane*'s source code.
+Agents are how the *cf-propane* project organizes CFEngine policies. This
+encloses the code documentation for each agent distributed within the
+project.
 
 .. toctree::
    :maxdepth: 2
 
-   agents/index
-   promises
-   failsafe
-
+   apt/index
+   lsb/index

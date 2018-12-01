@@ -173,5 +173,4 @@ the 15th day of the month).
 Contributors
 ^^^^^^^^^^^^
 
-- Jimmy Thrasibule <jimmy.thrasibule@gmail.com>, 2015/04/13
-
+- Jimmy Thrasibule <dev@jimmy.lt>, 2015/04/13

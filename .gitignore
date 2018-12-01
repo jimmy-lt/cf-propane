@@ -122,6 +122,11 @@ dist/
 *.egg
 
 
+# pipenv
+# ^^^^^^
+Pipfile.lock
+
+
 # Installer logs
 # ^^^^^^^^^^^^^^
 
